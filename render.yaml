@@ -1,0 +1,16 @@
+# Blueprint Render: New > Blueprint > conectar repo y aplicar este archivo.
+services:
+  - type: web
+    name: joyerias-garcia-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

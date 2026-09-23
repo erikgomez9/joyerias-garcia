@@ -1,0 +1,181 @@
+.editor {
+  margin-bottom: 1rem;
+}
+
+.heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.scanBlock {
+  margin-bottom: 0.75rem;
+}
+
+.scanHint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.scanMsg {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+}
+
+.addRow {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.addRow select {
+  flex: 1;
+}
+
+.conceptDetails {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.conceptDetails summary {
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  color: var(--gold);
+}
+
+.addCustom {
+  display: grid;
+  grid-template-columns: 1fr 100px auto;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 520px) {
+  .addCustom {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.lines {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.line {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+}
+
+.lineMain {
+  margin-bottom: 0.5rem;
+}
+
+.lineName {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.lineSku {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.lineControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.qtyLabel,
+.priceLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.qtyInput,
+.priceInput {
+  width: 4.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.lineSub {
+  font-weight: 600;
+  color: var(--gold);
+  margin-left: auto;
+  font-size: 0.9rem;
+}
+
+.removeBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.removeBtn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.tierHint {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.tierBadge {
+  color: var(--gold);
+}
+
+.footerTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.75rem 0.85rem;
+  background: var(--gold-glow);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.footerTotal strong {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--gold);
+}

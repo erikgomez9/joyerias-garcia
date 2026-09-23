@@ -1,0 +1,71 @@
+:root {
+  --bg-root: #0c0c0e;
+  --bg-panel: #141418;
+  --bg-elevated: #1c1c22;
+  --bg-card: #22222a;
+  --border: rgba(212, 175, 55, 0.12);
+  --border-strong: rgba(212, 175, 55, 0.28);
+  --gold: #d4af37;
+  --gold-dim: #9a7b2c;
+  --gold-glow: rgba(212, 175, 55, 0.15);
+  --text: #f4f1ea;
+  --text-muted: #9b968a;
+  --danger: #e85d5d;
+  --success: #6bcb8f;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-ui: "Outfit", system-ui, sans-serif;
+  --sidebar-w: 248px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-weight: 400;
+  background: var(--bg-root);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}

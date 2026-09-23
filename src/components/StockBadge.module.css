@@ -1,0 +1,44 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+.out {
+  background: rgba(184, 92, 92, 0.2);
+  color: #f08080;
+  border-color: rgba(184, 92, 92, 0.45);
+  text-transform: uppercase;
+}
+
+.low {
+  background: rgba(232, 165, 75, 0.15);
+  color: #f0b86a;
+  border-color: rgba(232, 165, 75, 0.4);
+}
+
+.ok {
+  background: rgba(76, 175, 122, 0.12);
+  color: #6fd99a;
+  border-color: rgba(76, 175, 122, 0.35);
+}
+
+.plain {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

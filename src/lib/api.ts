@@ -3,7 +3,6 @@ import type {
   Client,
   ClientInput,
   OrderInput,
-  OrderLine,
   OrderRecord,
   PaymentMix,
   Product,

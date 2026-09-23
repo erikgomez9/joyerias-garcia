@@ -25,7 +25,6 @@ import {
   computeWarrantyExchangeBreakdown,
   isSameValueExchangeAtTier,
   suggestPriceTierForPaidUnit,
-  suggestedDifferenceCharge,
 } from "@/lib/warrantyPricing";
 import { remainingWarrantyQty } from "@/lib/warrantyLineQty";
 import {
@@ -341,7 +340,7 @@ export function WarrantyPage() {
     setBusy(true);
     setMsg("");
     try {
-      const result = await warrantiesApi.create({
+      await warrantiesApi.create({
         type: warrantyType,
         originalSaleId: selectedSale.id,
         originalLineIndex: lineIndex,
@@ -710,7 +709,7 @@ export function WarrantyPage() {
                           <button
                             type="button"
                             className={`${ui.btn} ${ui.btnPrimary}`}
-                            onClick={useSameValueFlow}
+                            onClick={() => useSameValueFlow()}
                           >
                             Usar cambio mismo valor ($0)
                           </button>
@@ -875,14 +874,16 @@ export function WarrantyPage() {
                 busy ||
                 inventorySource !== "mongo" ||
                 (warrantyType === "same_value" &&
-                  replacement &&
-                  selectedLine &&
-                  !isSameValueExchangeAtTier(
-                    selectedLine.unitPrice,
-                    returnQty,
-                    replacement,
-                    returnQty,
-                    tier
+                  Boolean(
+                    replacement &&
+                      selectedLine &&
+                      !isSameValueExchangeAtTier(
+                        selectedLine.unitPrice,
+                        returnQty,
+                        replacement,
+                        returnQty,
+                        tier
+                      )
                   ))
               }
               onClick={() => void submit()}

@@ -1,5 +1,5 @@
 import { SALES_PERIOD_LABELS, type SalesPeriod } from "@/lib/saleDateFilter";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import type { LiveSalesReport } from "@/types/reports";
 
 function escapeCsv(value: string | number | undefined): string {

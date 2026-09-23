@@ -42,9 +42,9 @@ gh repo create joyerias-garcia --private --source=. --push
 1. [Render Dashboard](https://dashboard.render.com) → **New** → **Web Service**.
 2. Conecta el repo de GitHub.
 3. Configuración:
-   - **Root Directory:** `server`
+   - **Root Directory:** `server` (obligatorio; si queda vacío, Render ejecuta `npm run build` del front y falla)
    - **Runtime:** Node
-   - **Build Command:** `npm install`
+   - **Build Command:** `npm install` (no uses `npm run build` de la raíz)
    - **Start Command:** `npm start`
    - **Health Check Path:** `/api/v1/health`
 4. **Environment Variables:**

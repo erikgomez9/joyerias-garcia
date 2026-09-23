@@ -3,7 +3,12 @@ import { StockBadge } from "@/components/StockBadge";
 import { ProductLabel } from "@/components/ProductLabel";
 import { ProductThumb } from "@/components/ProductThumb";
 import { usePos } from "@/context/PosContext";
-import { PRODUCT_CATEGORIES } from "@/lib/inventoryCodes";
+import {
+  generateJewelryCode,
+  isValidJewelryCode,
+  normalizeJewelryCode,
+  PRODUCT_CATEGORIES,
+} from "@/lib/inventoryCodes";
 import { METAL_OPTIONS } from "@/lib/materials";
 import { formatMoney, metalLabel } from "@/lib/format";
 import { downloadInventoryCsv } from "@/lib/exportInventory";
@@ -37,8 +42,11 @@ const STATUS_CHIP_CLASS: Record<ProductStatusFilter, string> = {
   danado: styles.catalogFilterDanado,
 };
 
-const emptyForm: ProductInput = {
+type CatalogForm = ProductInput & { inventoryCode: string };
+
+const emptyForm: CatalogForm = {
   name: "",
+  inventoryCode: "",
   category: "Anillos",
   metal: "plata",
   metalOther: "",
@@ -65,7 +73,7 @@ export function CatalogPage() {
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>("todos");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState<ProductInput>(emptyForm);
+  const [form, setForm] = useState<CatalogForm>(emptyForm);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -110,10 +118,16 @@ export function CatalogPage() {
     setShowForm(true);
   }
 
+  const suggestedCode = useMemo(() => {
+    if (editing) return "";
+    return generateJewelryCode(form.category, products);
+  }, [editing, form.category, products]);
+
   function openEdit(p: Product) {
     setEditing(p);
     setForm({
       name: p.name,
+      inventoryCode: p.sku,
       category: p.category,
       metal: p.metal,
       metalOther: p.metalOther ?? "",
@@ -145,10 +159,26 @@ export function CatalogPage() {
       setError("Los precios no pueden ser negativos.");
       return;
     }
+    const { inventoryCode, ...formFields } = form;
     const payload = applyInventoryModeRules({
-      ...form,
+      ...formFields,
       inventoryMode: "catalog",
     });
+    const codeRaw = inventoryCode.trim();
+    if (codeRaw) {
+      const code = normalizeJewelryCode(codeRaw);
+      if (!isValidJewelryCode(code)) {
+        setError(
+          "Código inválido. Ejemplo: AR001 (aretes), CD042 (cadenas), AN010 (anillos)."
+        );
+        return;
+      }
+      payload.sku = code;
+      payload.barcode = code;
+    } else if (editing) {
+      setError("Indica el código SKU / barras de la joya.");
+      return;
+    }
     if (payload.stock < 1) {
       setError("Indica cuántas piezas iguales hay (mínimo 1).");
       return;
@@ -373,19 +403,29 @@ export function CatalogPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3>{editing ? "Editar joya" : "Alta de joya"}</h3>
-            {!editing && (
-              <p className={styles.formHint}>
-                SKU y código de barras se generan solos al guardar. No hace falta
-                escribirlos.
-              </p>
-            )}
-            {editing && (
-              <p className={styles.formHint}>
-                SKU <strong>{editing.sku}</strong> · Barras{" "}
-                <strong>{editing.barcode}</strong> (no cambian)
-              </p>
-            )}
+            <p className={styles.formHint}>
+              Código = <strong>iniciales de categoría + números</strong> (ej.
+              Aretes → AR001, Cadenas → CD042). Se usa igual en SKU y en la
+              etiqueta de barras.
+            </p>
             <form className={styles.formGrid} onSubmit={onSubmit}>
+              <label className={styles.fieldFull}>
+                <span>Código (SKU y barras)</span>
+                <input
+                  className={ui.input}
+                  value={form.inventoryCode}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      inventoryCode: e.target.value.toUpperCase(),
+                    })
+                  }
+                  placeholder={
+                    editing ? "Ej. AR001" : `Automático: ${suggestedCode}`
+                  }
+                  required={!!editing}
+                />
+              </label>
               <label className={styles.fieldFull}>
                 <span>Nombre</span>
                 <input

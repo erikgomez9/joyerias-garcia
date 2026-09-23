@@ -18,11 +18,7 @@ import {
   productsApi,
   salesApi,
 } from "@/lib/api";
-import {
-  generateBarcode,
-  generateSku,
-  uid,
-} from "@/lib/inventoryCodes";
+import { generateSku, uid } from "@/lib/inventoryCodes";
 import { applyInventoryModeRules } from "@/lib/inventoryMode";
 import { normalizeMetalFields } from "@/lib/materials";
 import { productPrice } from "@/lib/format";
@@ -138,8 +134,9 @@ const DEFAULT_IMAGE =
 function buildLocalProduct(input: ProductInput, prev: Product[]): Product {
   const now = new Date().toISOString();
   const normalized = applyInventoryModeRules(input);
-  const sku = generateSku(normalized.category, prev);
-  const barcode = generateBarcode(prev);
+  const code = generateSku(normalized.category, prev);
+  const sku = code;
+  const barcode = code;
   return {
     id: uid(),
     sku,

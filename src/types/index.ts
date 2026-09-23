@@ -93,6 +93,9 @@ export interface Product {
 
 export interface ProductInput {
   name: string;
+  /** Opcional al crear; si no se envía, se genera (ej. AR001). */
+  sku?: string;
+  barcode?: string;
   category: ProductCategory | string;
   metal?: Metal;
   /** Nombre libre cuando metal es "otro" */

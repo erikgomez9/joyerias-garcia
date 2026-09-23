@@ -33,6 +33,12 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 
+app.get("/", (_req, res) => {
+  res.type("html").send(
+    `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Joyerías García API</title></head><body style="font-family:system-ui;padding:2rem;max-width:36rem"><h1>API en línea</h1><p>Esta URL es solo el servidor (inventario, ventas, pedidos). La app se abre en <strong>Vercel</strong>, no aquí.</p><p>Prueba: <a href="/api/v1/health">/api/v1/health</a></p></body></html>`
+  );
+});
+
 app.get("/api/v1/health", (_req, res) => {
   res.json({
     ok: true,

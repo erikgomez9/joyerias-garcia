@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { generateBarcode, generateSku } from "../lib/inventoryCodes.js";
+import {
+  generateJewelryCode,
+  isValidJewelryCode,
+  normalizeJewelryCode,
+} from "../lib/inventoryCodes.js";
 import {
   normalizeStock,
   validateInventoryBody,
@@ -39,8 +43,39 @@ productsRouter.post("/", async (req, res, next) => {
       {},
       { sku: 1, barcode: 1 }
     ).lean();
-    const sku = generateSku(body.category ?? "Otros", existing);
-    const barcode = generateBarcode(existing);
+    const category = body.category ?? "Otros";
+    let sku;
+    let barcode;
+    const manualSku = body.sku?.trim();
+    const manualBarcode = body.barcode?.trim();
+    if (manualSku || manualBarcode) {
+      sku = normalizeJewelryCode(manualSku || manualBarcode);
+      barcode = normalizeJewelryCode(manualBarcode || manualSku);
+      if (!isValidJewelryCode(sku)) {
+        res.status(400).json({
+          error:
+            "Código inválido. Usa dos letras de categoría y números (ej. AR001, CD042).",
+        });
+        return;
+      }
+      if (sku !== barcode) {
+        res.status(400).json({
+          error: "SKU y código de barras deben ser el mismo valor.",
+        });
+        return;
+      }
+      const taken = await ProductModel.findOne({
+        $or: [{ sku }, { barcode }],
+      });
+      if (taken) {
+        res.status(409).json({ error: "Ese código ya existe en inventario." });
+        return;
+      }
+    } else {
+      const code = generateJewelryCode(category, existing);
+      sku = code;
+      barcode = code;
+    }
 
     const doc = await ProductModel.create({
       sku,
@@ -119,6 +154,38 @@ productsRouter.patch("/:id", async (req, res, next) => {
     if (body.status !== undefined) patch.status = body.status;
     if (body.image !== undefined) patch.image = body.image.trim();
     if (body.notes !== undefined) patch.notes = body.notes.trim() || undefined;
+
+    if (body.sku !== undefined || body.barcode !== undefined) {
+      const sku = normalizeJewelryCode(
+        body.sku?.trim() || body.barcode?.trim() || ""
+      );
+      const barcode = normalizeJewelryCode(
+        body.barcode?.trim() || body.sku?.trim() || ""
+      );
+      if (!isValidJewelryCode(sku)) {
+        res.status(400).json({
+          error:
+            "Código inválido. Usa dos letras de categoría y números (ej. AR001, CD042).",
+        });
+        return;
+      }
+      if (sku !== barcode) {
+        res.status(400).json({
+          error: "SKU y código de barras deben ser el mismo valor.",
+        });
+        return;
+      }
+      const taken = await ProductModel.findOne({
+        _id: { $ne: current._id },
+        $or: [{ sku }, { barcode }],
+      });
+      if (taken) {
+        res.status(409).json({ error: "Ese código ya existe en inventario." });
+        return;
+      }
+      patch.sku = sku;
+      patch.barcode = barcode;
+    }
 
     const doc = await ProductModel.findByIdAndUpdate(
       req.params.id,

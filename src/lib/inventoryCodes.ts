@@ -20,49 +20,74 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "Otros",
 ];
 
+/** Ej. AR001 — dos letras de categoría + al menos 3 dígitos */
+export const JEWELRY_CODE_PATTERN = /^[A-Z]{2}\d{3,}$/i;
+
 export function categoryCode(category: string): string {
   return CATEGORY_CODE[category] ?? "OT";
 }
 
-/** SKU: JG-AN-0001 (prefijo + categoría + secuencia) */
+function maxSequenceForPrefix(prefix: string, existing: Product[]): number {
+  const code = prefix.toUpperCase();
+  let max = 0;
+  const reNew = new RegExp(`^${code}(\\d+)$`, "i");
+  const reLegacySku = new RegExp(`^JG-${code}-(\\d+)$`, "i");
+
+  for (const p of existing) {
+    for (const raw of [p.sku, p.barcode]) {
+      if (!raw?.trim()) continue;
+      const u = raw.trim().toUpperCase();
+      let m = u.match(reNew);
+      if (m) {
+        const n = Number.parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+        continue;
+      }
+      m = u.match(reLegacySku);
+      if (m) {
+        const n = Number.parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      }
+    }
+  }
+  return max;
+}
+
+/**
+ * Código de joya: prefijo de categoría + secuencia (3 dígitos).
+ * Ej. Aretes → AR001, Cadenas → CD042. Sirve como SKU y código de barras.
+ */
+export function generateJewelryCode(
+  category: string,
+  existing: Product[]
+): string {
+  const prefix = categoryCode(category);
+  const next = maxSequenceForPrefix(prefix, existing) + 1;
+  return `${prefix}${String(next).padStart(3, "0")}`;
+}
+
+/** @deprecated alias — usa generateJewelryCode */
 export function generateSku(
   category: string,
   existing: Product[]
 ): string {
-  const code = categoryCode(category);
-  const prefix = `JG-${code}-`;
-  let max = 0;
-  for (const p of existing) {
-    if (!p.sku.startsWith(prefix)) continue;
-    const n = Number.parseInt(p.sku.slice(prefix.length), 10);
-    if (!Number.isNaN(n) && n > max) max = n;
-  }
-  return `${prefix}${String(max + 1).padStart(4, "0")}`;
+  return generateJewelryCode(category, existing);
 }
 
-/**
- * Código de barras numérico interno (13 dígitos estilo EAN).
- * Prefijo 780 = joyería interna; el resto es secuencia única.
- */
-export function generateBarcode(existing: Product[]): string {
-  let max = 0;
-  for (const p of existing) {
-    if (!/^\d{13}$/.test(p.barcode)) continue;
-    if (!p.barcode.startsWith("780")) continue;
-    const n = Number.parseInt(p.barcode.slice(3, 12), 10);
-    if (!Number.isNaN(n) && n > max) max = n;
-  }
-  const body = `780${String(max + 1).padStart(9, "0")}`;
-  return body + ean13CheckDigit(body);
+/** Mismo código que el SKU (legible en etiqueta y escáner). */
+export function generateBarcode(
+  category: string,
+  existing: Product[]
+): string {
+  return generateJewelryCode(category, existing);
 }
 
-function ean13CheckDigit(twelve: string): string {
-  let sum = 0;
-  for (let i = 0; i < 12; i++) {
-    const d = Number(twelve[i]);
-    sum += i % 2 === 0 ? d : d * 3;
-  }
-  return String((10 - (sum % 10)) % 10);
+export function normalizeJewelryCode(raw: string): string {
+  return raw.trim().toUpperCase();
+}
+
+export function isValidJewelryCode(raw: string): boolean {
+  return JEWELRY_CODE_PATTERN.test(normalizeJewelryCode(raw));
 }
 
 export function uid(): string {

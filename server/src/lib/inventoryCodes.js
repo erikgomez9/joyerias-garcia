@@ -8,39 +8,56 @@ const CATEGORY_CODE = {
   Otros: "OT",
 };
 
+export const JEWELRY_CODE_PATTERN = /^[A-Z]{2}\d{3,}$/i;
+
 export function categoryCode(category) {
   return CATEGORY_CODE[category] ?? "OT";
 }
 
+function maxSequenceForPrefix(prefix, existing) {
+  const code = prefix.toUpperCase();
+  let max = 0;
+  const reNew = new RegExp(`^${code}(\\d+)$`, "i");
+  const reLegacySku = new RegExp(`^JG-${code}-(\\d+)$`, "i");
+
+  for (const p of existing) {
+    for (const raw of [p.sku, p.barcode]) {
+      if (!raw?.trim()) continue;
+      const u = raw.trim().toUpperCase();
+      let m = u.match(reNew);
+      if (m) {
+        const n = Number.parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+        continue;
+      }
+      m = u.match(reLegacySku);
+      if (m) {
+        const n = Number.parseInt(m[1], 10);
+        if (!Number.isNaN(n) && n > max) max = n;
+      }
+    }
+  }
+  return max;
+}
+
+export function generateJewelryCode(category, existing) {
+  const prefix = categoryCode(category);
+  const next = maxSequenceForPrefix(prefix, existing) + 1;
+  return `${prefix}${String(next).padStart(3, "0")}`;
+}
+
 export function generateSku(category, existing) {
-  const code = categoryCode(category);
-  const prefix = `JG-${code}-`;
-  let max = 0;
-  for (const p of existing) {
-    if (!p.sku?.startsWith(prefix)) continue;
-    const n = Number.parseInt(p.sku.slice(prefix.length), 10);
-    if (!Number.isNaN(n) && n > max) max = n;
-  }
-  return `${prefix}${String(max + 1).padStart(4, "0")}`;
+  return generateJewelryCode(category, existing);
 }
 
-function ean13CheckDigit(twelve) {
-  let sum = 0;
-  for (let i = 0; i < 12; i++) {
-    const d = Number(twelve[i]);
-    sum += i % 2 === 0 ? d : d * 3;
-  }
-  return String((10 - (sum % 10)) % 10);
+export function generateBarcode(category, existing) {
+  return generateJewelryCode(category, existing);
 }
 
-export function generateBarcode(existing) {
-  let max = 0;
-  for (const p of existing) {
-    if (!/^\d{13}$/.test(p.barcode ?? "")) continue;
-    if (!p.barcode.startsWith("780")) continue;
-    const n = Number.parseInt(p.barcode.slice(3, 12), 10);
-    if (!Number.isNaN(n) && n > max) max = n;
-  }
-  const body = `780${String(max + 1).padStart(9, "0")}`;
-  return body + ean13CheckDigit(body);
+export function normalizeJewelryCode(raw) {
+  return raw.trim().toUpperCase();
+}
+
+export function isValidJewelryCode(raw) {
+  return JEWELRY_CODE_PATTERN.test(normalizeJewelryCode(raw));
 }

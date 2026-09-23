@@ -14,9 +14,11 @@ export function ProductLabel({ product, onClose }: Props) {
 
   useEffect(() => {
     if (!svgRef.current) return;
-    JsBarcode(svgRef.current, product.barcode, {
-      format: "EAN13",
-      width: 2,
+    const code = product.barcode.trim();
+    const isEan13 = /^\d{13}$/.test(code);
+    JsBarcode(svgRef.current, code, {
+      format: isEan13 ? "EAN13" : "CODE128",
+      width: isEan13 ? 2 : 1.8,
       height: 56,
       displayValue: true,
       fontSize: 14,

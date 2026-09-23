@@ -485,6 +485,18 @@ export function OrdersPage() {
                           </p>
                         )}
                         <div className={styles.orderStatusActions}>
+                          {selectedLive.status === "listo" && (
+                            <button
+                              type="button"
+                              className={`${ui.btn} ${ui.btnGhost}`}
+                              disabled={detailBusy}
+                              onClick={() =>
+                                void setStatus(selectedLive, "pendiente")
+                              }
+                            >
+                              ← {ORDER_STATUS_LABELS.pendiente}
+                            </button>
+                          )}
                           {nextStatus && (
                             <button
                               type="button"

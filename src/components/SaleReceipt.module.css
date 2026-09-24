@@ -118,6 +118,17 @@
   color: #555;
 }
 
+.policy {
+  text-align: center;
+  margin: 0.5rem 0 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #333;
+  line-height: 1.35;
+}
+
 /* Ancho fijo típico de impresora térmica en mostrador (80 mm). */
 .ticketPrint {
   margin-left: auto;
@@ -180,6 +191,10 @@
   .meta,
   .thanks {
     font-size: 8pt;
+  }
+
+  .policy {
+    font-size: 7pt;
   }
 
   .lines li {

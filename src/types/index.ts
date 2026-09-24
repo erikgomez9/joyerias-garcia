@@ -204,6 +204,8 @@ export interface PaymentMix {
   transferencia?: number;
 }
 
+export type SalePriceTier = "mayoreo" | "menudeo";
+
 export type SaleKind = "normal" | "warranty";
 
 export type SaleWarrantyType = "exchange_same" | "exchange_diff" | "refund";
@@ -233,4 +235,6 @@ export interface SaleRecord {
   warrantyType?: SaleWarrantyType;
   originalSaleId?: string;
   warrantyCaseId?: string;
+  /** Lista de precios aplicada al ticket (POS / pedido). */
+  priceTier?: SalePriceTier;
 }

@@ -241,6 +241,7 @@ export async function processWarranty(body) {
             warrantyCaseId: warrantyCase._id,
             orderId: sale.orderId,
             orderCode: sale.orderCode,
+            priceTier: sale.priceTier,
             items: [
               {
                 productId: returnedProduct._id,
@@ -287,6 +288,7 @@ export async function processWarranty(body) {
             warrantyCaseId: warrantyCase._id,
             orderId: sale.orderId,
             orderCode: sale.orderCode,
+            priceTier: sale.priceTier,
             items: [
               {
                 productId: replacementProduct._id,

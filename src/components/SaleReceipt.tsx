@@ -2,6 +2,11 @@ import { usePos } from "@/context/PosContext";
 import { formatMoney, formatDate } from "@/lib/format";
 import { formatPaymentMix } from "@/lib/paymentMix";
 import {
+  priceTierLabel,
+  resolveSalePriceTier,
+  SALE_NO_RETURNS_POLICY,
+} from "@/lib/salePricing";
+import {
   findProductForSaleLine,
   resolveSaleLineMaterial,
   resolveSaleLineUnitCost,
@@ -16,6 +21,7 @@ interface Props {
 
 export function SaleReceipt({ sale, onClose }: Props) {
   const { products } = usePos();
+  const tier = resolveSalePriceTier(sale, products);
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true">
       <div className={styles.panel}>
@@ -44,6 +50,11 @@ export function SaleReceipt({ sale, onClose }: Props) {
               ? formatPaymentMix(sale.paymentMix)
               : sale.payment}
           </div>
+          {tier ? (
+            <div className={styles.meta}>
+              Venta: <strong>{priceTierLabel(tier)}</strong>
+            </div>
+          ) : null}
           <hr className={styles.rule} />
           <ul className={styles.lines}>
             {sale.items.map((item, i) => {
@@ -75,6 +86,7 @@ export function SaleReceipt({ sale, onClose }: Props) {
             <span>{formatMoney(sale.total)}</span>
           </div>
           <p className={styles.thanks}>Gracias por su compra</p>
+          <p className={styles.policy}>{SALE_NO_RETURNS_POLICY}</p>
         </div>
       </div>
     </div>

@@ -57,6 +57,10 @@ const saleSchema = new mongoose.Schema(
       ref: "WarrantyCase",
     },
     items: { type: [saleItemSchema], required: true },
+    priceTier: {
+      type: String,
+      enum: ["mayoreo", "menudeo"],
+    },
   },
   { timestamps: true }
 );
@@ -94,6 +98,7 @@ export function docToSale(doc) {
     warrantyType: doc.warrantyType,
     originalSaleId: doc.originalSaleId?.toString(),
     warrantyCaseId: doc.warrantyCaseId?.toString(),
+    priceTier: doc.priceTier,
     items: doc.items.map((i) => ({
       productId: i.productId?.toString(),
       name: i.name,

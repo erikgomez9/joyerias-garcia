@@ -2,6 +2,7 @@ import { Router } from "express";
 import mongoose from "mongoose";
 import { assertSellableAtPos } from "../lib/productAvailability.js";
 import { validatePaymentMix } from "../lib/paymentMix.js";
+import { priceTierForSaleLines } from "../lib/salePricing.js";
 import { ProductModel } from "../models/Product.js";
 import { SaleModel, docToSale } from "../models/Sale.js";
 
@@ -44,6 +45,7 @@ salesRouter.post("/checkout", async (req, res, next) => {
     let saleDoc;
     await session.withTransaction(async () => {
       const lineItems = [];
+      const productById = new Map();
       let total = 0;
 
       for (const raw of items) {
@@ -59,6 +61,7 @@ salesRouter.post("/checkout", async (req, res, next) => {
           throw new Error(`Producto no encontrado: ${productId}`);
         }
         assertSellableAtPos(product, qty);
+        productById.set(product._id.toString(), product);
 
         product.stock -= qty;
         if (product.stock === 0) product.status = "vendido";
@@ -82,6 +85,8 @@ salesRouter.post("/checkout", async (req, res, next) => {
         paymentMix = validatePaymentMix(body.paymentMix, total);
       }
 
+      const priceTier = priceTierForSaleLines(lineItems, productById);
+
       const created = await SaleModel.create(
         [
           {
@@ -90,6 +95,7 @@ salesRouter.post("/checkout", async (req, res, next) => {
             paymentMix,
             seller: body.seller?.trim() || "Mostrador",
             items: lineItems,
+            priceTier,
           },
         ],
         { session }

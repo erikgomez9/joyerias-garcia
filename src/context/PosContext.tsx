@@ -595,6 +595,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         const sale = await salesApi.checkout({
           payment,
           paymentMix: mix,
+          priceTier: tier,
           items: current.map((l) => ({
             productId: l.product.id,
             qty: l.qty,
@@ -612,6 +613,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         id: uid(),
         at: new Date().toISOString(),
         total,
+        priceTier: tier,
         items: current.map((l) => ({
           name: l.product.name,
           sku: l.product.sku,

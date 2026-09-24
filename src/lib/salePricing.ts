@@ -1,5 +1,10 @@
 import { productPrice, type PriceTier } from "@/lib/format";
-import type { CartLine } from "@/types";
+import { findProductForSaleLine } from "@/lib/saleLineDetails";
+import type { CartLine, Product, SaleRecord } from "@/types";
+
+/** Leyenda impresa en tickets de venta al cliente. */
+export const SALE_NO_RETURNS_POLICY =
+  "No se aceptan devoluciones ni cambios.";
 
 /** A partir de este total (menudeo) se cobra todo el ticket a mayoreo. */
 export const MAYOREO_MIN_TOTAL_MXN = 500;
@@ -37,6 +42,22 @@ export function priceTierHint(lines: CartLine[], tier: PriceTier): string {
   const falta = MAYOREO_MIN_TOTAL_MXN - menudeo;
   if (lines.length === 0) return "Precio menudeo.";
   return `Precio menudeo. Faltan ${formatShort(falta)} para mayoreo.`;
+}
+
+export function resolveSalePriceTier(
+  sale: SaleRecord,
+  products: Product[]
+): PriceTier | undefined {
+  if (sale.priceTier) return sale.priceTier;
+  if (sale.items.length === 0) return undefined;
+
+  let menudeo = 0;
+  for (const item of sale.items) {
+    const p = findProductForSaleLine(item, products);
+    if (p) menudeo += p.priceMenudeo * item.qty;
+    else menudeo += item.unitPrice * item.qty;
+  }
+  return menudeo >= MAYOREO_MIN_TOTAL_MXN ? "mayoreo" : "menudeo";
 }
 
 function formatShort(n: number): string {

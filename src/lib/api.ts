@@ -97,6 +97,7 @@ export const salesApi = {
     payment: SaleRecord["payment"];
     paymentMix?: PaymentMix;
     seller?: string;
+    priceTier?: SaleRecord["priceTier"];
     items: {
       productId: string;
       qty: number;

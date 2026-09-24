@@ -1,5 +1,6 @@
 import { ProductModel } from "../models/Product.js";
 import { SaleModel, docToSale } from "../models/Sale.js";
+import { priceTierForSaleLines } from "./salePricing.js";
 
 function saleLineFromOrderItem(i, product) {
   return {
@@ -44,6 +45,8 @@ export async function createSaleFromOrder(orderDoc) {
     throw new Error("El pedido no tiene líneas para registrar la venta.");
   }
 
+  const priceTier = priceTierForSaleLines(items, productById);
+
   const sale = await SaleModel.create({
     total: orderDoc.totalAmount,
     payment: "pedido",
@@ -51,6 +54,7 @@ export async function createSaleFromOrder(orderDoc) {
     orderId: orderDoc._id,
     orderCode: orderDoc.orderCode,
     items,
+    priceTier,
   });
 
   orderDoc.saleId = sale._id;

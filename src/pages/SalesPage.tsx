@@ -14,6 +14,7 @@ import {
   SALES_PERIOD_LABELS,
   type SalesPeriod,
 } from "@/lib/saleDateFilter";
+import { priceTierLabel, resolveSalePriceTier } from "@/lib/salePricing";
 import {
   isOrderSale,
   isSaleFromOrder,
@@ -264,6 +265,7 @@ export function SalesPage() {
                 const originalSale = isWarrantyAdjustmentSale(s)
                   ? resolveOriginalSale(s, sales)
                   : undefined;
+                const priceTier = resolveSalePriceTier(s, products);
                 return (
                   <li
                     key={s.id}
@@ -307,6 +309,11 @@ export function SalesPage() {
                       {!isOrderSale(s, orders) && (
                         <span className={ui.badge}>
                           {salePaymentLabel(s, orders)}
+                        </span>
+                      )}
+                      {priceTier && (
+                        <span className={ui.badge} title="Lista de precios del ticket">
+                          {priceTierLabel(priceTier)}
                         </span>
                       )}
                       <span className={styles.saleCardPieces}>
@@ -380,6 +387,9 @@ export function SalesPage() {
                               <div className={styles.saleDetailSummary}>
                                 <span>
                                   {sum.lines} · {sum.pieces}
+                                  {priceTier
+                                    ? ` · ${priceTierLabel(priceTier)}`
+                                    : ""}
                                 </span>
                                 {sum.pay && (
                                   <>

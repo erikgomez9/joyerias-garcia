@@ -1,5 +1,11 @@
+import { usePos } from "@/context/PosContext";
 import { formatMoney, formatDate } from "@/lib/format";
 import { formatPaymentMix } from "@/lib/paymentMix";
+import {
+  findProductForSaleLine,
+  resolveSaleLineMaterial,
+  resolveSaleLineUnitCost,
+} from "@/lib/saleLineDetails";
 import type { SaleRecord } from "@/types";
 import styles from "./SaleReceipt.module.css";
 
@@ -9,6 +15,7 @@ interface Props {
 }
 
 export function SaleReceipt({ sale, onClose }: Props) {
+  const { products } = usePos();
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true">
       <div className={styles.panel}>
@@ -39,14 +46,28 @@ export function SaleReceipt({ sale, onClose }: Props) {
           </div>
           <hr className={styles.rule} />
           <ul className={styles.lines}>
-            {sale.items.map((item, i) => (
-              <li key={`${item.name}-${i}`}>
-                <span>
-                  {item.qty}× {item.name}
-                </span>
-                <span>{formatMoney(item.unitPrice * item.qty)}</span>
-              </li>
-            ))}
+            {sale.items.map((item, i) => {
+              const catalog = findProductForSaleLine(item, products);
+              const material = resolveSaleLineMaterial(item, catalog);
+              const unitCost = resolveSaleLineUnitCost(item, catalog);
+              const extra = [
+                material && `Mat. ${material}`,
+                unitCost != null && `Costo ${formatMoney(unitCost)}`,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={`${item.name}-${i}`}>
+                  <span>
+                    {item.qty}× {item.name}
+                    {extra ? (
+                      <span className={styles.lineExtra}>{extra}</span>
+                    ) : null}
+                  </span>
+                  <span>{formatMoney(item.unitPrice * item.qty)}</span>
+                </li>
+              );
+            })}
           </ul>
           <hr className={styles.rule} />
           <div className={styles.total}>

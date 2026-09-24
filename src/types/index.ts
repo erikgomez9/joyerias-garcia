@@ -218,6 +218,10 @@ export interface SaleRecord {
     sku?: string;
     qty: number;
     unitPrice: number;
+    metal?: Metal;
+    metalOther?: string;
+    /** Costo (mayoreo) registrado al vender */
+    unitCost?: number;
   }[];
   payment: SalePaymentMethod;
   paymentMix?: PaymentMix;

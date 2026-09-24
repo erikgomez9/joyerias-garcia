@@ -7,6 +7,13 @@ const saleItemSchema = new mongoose.Schema(
     name: { type: String, required: true },
     qty: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
+    metal: {
+      type: String,
+      enum: ["plata", "oro", "acero", "rodio", "oro_laminado", "otro"],
+    },
+    metalOther: { type: String, trim: true },
+    /** Costo (mayoreo) al momento de la venta */
+    unitCost: { type: Number, min: 0 },
   },
   { _id: false }
 );
@@ -93,6 +100,9 @@ export function docToSale(doc) {
       sku: i.sku,
       qty: i.qty,
       unitPrice: i.unitPrice,
+      metal: i.metal,
+      metalOther: i.metalOther,
+      unitCost: i.unitCost,
     })),
   };
 }

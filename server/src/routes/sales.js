@@ -70,6 +70,9 @@ salesRouter.post("/checkout", async (req, res, next) => {
           name: product.name,
           qty,
           unitPrice,
+          metal: product.metal,
+          metalOther: product.metalOther,
+          unitCost: product.priceMayoreo,
         });
         total += unitPrice * qty;
       }

@@ -3,6 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePos } from "@/context/PosContext";
 import { downloadSalesCsv } from "@/lib/exportSales";
 import { formatMoney, formatDate } from "@/lib/format";
+import {
+  findProductForSaleLine,
+  resolveSaleLineMaterial,
+  resolveSaleLineUnitCost,
+} from "@/lib/saleLineDetails";
 import { formatPaymentMix } from "@/lib/paymentMix";
 import {
   filterSalesByPeriod,
@@ -74,7 +79,7 @@ function saleDetailSummary(
 }
 
 export function SalesPage() {
-  const { sales, orders, inventorySource } = usePos();
+  const { sales, orders, products, inventorySource } = usePos();
   const [period, setPeriod] = useState<SalesPeriod>("month");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [pendingScrollSaleId, setPendingScrollSaleId] = useState<string | null>(
@@ -424,7 +429,20 @@ export function SalesPage() {
                                 </p>
                               )}
                               <ul className={styles.saleCardItems}>
-                                {s.items.map((item, i) => (
+                                {s.items.map((item, i) => {
+                                  const catalog = findProductForSaleLine(
+                                    item,
+                                    products
+                                  );
+                                  const material = resolveSaleLineMaterial(
+                                    item,
+                                    catalog
+                                  );
+                                  const unitCost = resolveSaleLineUnitCost(
+                                    item,
+                                    catalog
+                                  );
+                                  return (
                                   <li
                                     key={`${item.name}-${i}`}
                                     className={styles.saleDetailLine}
@@ -433,6 +451,17 @@ export function SalesPage() {
                                       <span className={styles.saleDetailName}>
                                         {item.name}
                                       </span>
+                                      {(material || unitCost != null) && (
+                                        <span className={styles.saleDetailSku}>
+                                          {[
+                                            material && `Material: ${material}`,
+                                            unitCost != null &&
+                                              `Costo: ${formatMoney(unitCost)}`,
+                                          ]
+                                            .filter(Boolean)
+                                            .join(" · ")}
+                                        </span>
+                                      )}
                                       {item.sku?.trim() && (
                                         <span className={styles.saleDetailSku}>
                                           SKU {item.sku.trim()}
@@ -459,7 +488,8 @@ export function SalesPage() {
                                       </span>
                                     </div>
                                   </li>
-                                ))}
+                                );
+                                })}
                               </ul>
                               <div className={styles.saleDetailFoot}>
                                 <span>

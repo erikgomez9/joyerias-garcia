@@ -44,6 +44,13 @@ export function PosProductConfirm({
           </div>
           <div className={styles.info}>
             <div className={styles.name}>{product.name}</div>
+            {product.size?.trim() ? (
+              <div className={styles.sizeBadge}>
+                {product.category === "Anillos"
+                  ? `Talla ${product.size.trim()}`
+                  : product.size.trim()}
+              </div>
+            ) : null}
             <div className={styles.meta}>
               {product.category} · {metalLabel(product.metal, product.metalOther)}
             </div>

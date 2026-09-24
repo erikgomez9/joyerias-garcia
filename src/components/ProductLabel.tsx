@@ -50,6 +50,9 @@ export function ProductLabel({ product, onClose }: Props) {
         <div className={styles.labelSheet} id="print-label">
           <div className={styles.brand}>Joyerías García</div>
           <div className={styles.name}>{product.name}</div>
+          {product.size?.trim() ? (
+            <div className={styles.sizeLine}>{product.size.trim()}</div>
+          ) : null}
           <div className={styles.meta}>
             {product.category}
             {product.metal

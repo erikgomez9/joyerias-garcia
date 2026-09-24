@@ -1,4 +1,5 @@
 import { formatMoney, productPrice } from "@/lib/format";
+import { productDisplayName } from "@/lib/productSize";
 import {
   cartTotal,
   priceTierForCart,
@@ -41,7 +42,9 @@ export function PosCheckoutReview({ lines, onBack, onContinue }: Props) {
             <li key={line.product.id} className={styles.line}>
               <img src={line.product.image} alt="" className={styles.thumb} />
               <div className={styles.lineBody}>
-                <div className={styles.lineName}>{line.product.name}</div>
+                <div className={styles.lineName}>
+                  {productDisplayName(line.product)}
+                </div>
                 <div className={styles.lineMeta}>
                   {line.product.sku} · {line.qty} pza(s) ·{" "}
                   {formatMoney(productPrice(line.product, tier))} c/u

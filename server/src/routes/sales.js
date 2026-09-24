@@ -70,7 +70,9 @@ salesRouter.post("/checkout", async (req, res, next) => {
         lineItems.push({
           productId: product._id,
           sku: product.sku,
-          name: product.name,
+          name: product.size?.trim()
+            ? `${product.name} · ${product.size.trim()}`
+            : product.name,
           qty,
           unitPrice,
           metal: product.metal,

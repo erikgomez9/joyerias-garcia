@@ -26,6 +26,7 @@ import {
   normalizePaymentMix,
   validatePaymentMix,
 } from "@/lib/paymentMix";
+import { productDisplayName } from "@/lib/productSize";
 import { cartTotal, priceTierForCart } from "@/lib/salePricing";
 import type {
   CartLine,
@@ -150,6 +151,7 @@ function buildLocalProduct(input: ProductInput, prev: Product[]): Product {
         : undefined,
     stones: normalized.stones?.trim() || undefined,
     weightGrams: normalized.weightGrams,
+    size: normalized.size?.trim() || undefined,
     priceMayoreo: normalized.priceMayoreo,
     priceMenudeo: normalized.priceMenudeo,
     inventoryMode: normalized.inventoryMode,
@@ -315,6 +317,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
               patch.weightGrams !== undefined
                 ? patch.weightGrams
                 : p.weightGrams,
+            size:
+              patch.size !== undefined
+                ? patch.size.trim() || undefined
+                : p.size,
             priceMayoreo:
               patch.priceMayoreo !== undefined
                 ? patch.priceMayoreo
@@ -615,7 +621,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         total,
         priceTier: tier,
         items: current.map((l) => ({
-          name: l.product.name,
+          name: productDisplayName(l.product),
           sku: l.product.sku,
           qty: l.qty,
           unitPrice: productPrice(l.product, tier),

@@ -78,6 +78,8 @@ export interface Product {
   stones?: string;
   /** Peso en gramos */
   weightGrams?: number;
+  /** Talla o longitud (cada medida = SKU y stock propios) */
+  size?: string;
   /** Precio mayoreo */
   priceMayoreo: number;
   /** Precio menudeo */
@@ -102,6 +104,7 @@ export interface ProductInput {
   metalOther?: string;
   stones?: string;
   weightGrams?: number;
+  size?: string;
   priceMayoreo: number;
   priceMenudeo: number;
   inventoryMode?: InventoryMode;

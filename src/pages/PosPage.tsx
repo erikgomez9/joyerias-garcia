@@ -17,6 +17,7 @@ import {
   posProductBlockReason,
 } from "@/lib/productAvailability";
 import { isOutOfStock } from "@/lib/stockDisplay";
+import { productDisplayName } from "@/lib/productSize";
 import { findProductByScan } from "@/lib/posScan";
 import {
   paymentMixTotal,
@@ -66,7 +67,8 @@ export function PosPage() {
       const hay =
         p.name.toLowerCase().includes(term) ||
         p.sku.toLowerCase().includes(term) ||
-        p.barcode?.toLowerCase().includes(term);
+        p.barcode?.toLowerCase().includes(term) ||
+        (p.size?.toLowerCase().includes(term) ?? false);
       return okCat && hay;
     });
   }, [products, q, cat]);
@@ -197,7 +199,9 @@ export function PosPage() {
                     >
                       <ProductThumb src={fresh.image} alt={fresh.name} />
                       <div className={styles.posPickInfo}>
-                        <div className={styles.posPickName}>{fresh.name}</div>
+                        <div className={styles.posPickName}>
+                          {productDisplayName(fresh)}
+                        </div>
                         <div className={styles.posPickMeta}>
                           {fresh.sku} ·{" "}
                           <StockBadge
@@ -244,7 +248,9 @@ export function PosPage() {
               {cart.map((line) => (
                 <div key={line.product.id} className={styles.cartLine}>
                   <div>
-                    <div className={styles.cartLineName}>{line.product.name}</div>
+                    <div className={styles.cartLineName}>
+                      {productDisplayName(line.product)}
+                    </div>
                     <div className={styles.cartLineMeta}>
                       {line.product.sku} ·{" "}
                       {formatMoney(productPrice(line.product, priceTier))} c/u

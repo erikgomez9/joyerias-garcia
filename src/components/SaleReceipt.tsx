@@ -25,6 +25,11 @@ export function SaleReceipt({ sale, onClose }: Props) {
   return (
     <div className={styles.overlay} role="dialog" aria-modal="true">
       <div className={styles.panel}>
+        <p className={styles.printHint}>
+          Para ticket nítido en térmica: impresora al 100 % (sin “Ajustar a la
+          página”), papel 80 mm si tu driver lo permite, y densidad media o
+          alta en el driver.
+        </p>
         <div className={styles.toolbar}>
           <h3>Venta registrada</h3>
           <div className={styles.actions}>
@@ -69,13 +74,15 @@ export function SaleReceipt({ sale, onClose }: Props) {
                 .join(" · ");
               return (
                 <li key={`${item.name}-${i}`}>
-                  <span>
+                  <span className={styles.lineDesc}>
                     {item.qty}× {item.name}
                     {extra ? (
                       <span className={styles.lineExtra}>{extra}</span>
                     ) : null}
                   </span>
-                  <span>{formatMoney(item.unitPrice * item.qty)}</span>
+                  <span className={styles.lineAmt}>
+                    {formatMoney(item.unitPrice * item.qty)}
+                  </span>
                 </li>
               );
             })}

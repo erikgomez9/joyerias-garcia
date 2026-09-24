@@ -21,6 +21,16 @@ import {
   productStatusFilterLabel,
   type ProductStatusFilter,
 } from "@/lib/stockDisplay";
+import {
+  filterSizeGroups,
+  formatSizeGroupLine,
+  groupProductsByModel,
+} from "@/lib/productSizeGroups";
+import {
+  categoryUsesSize,
+  sizeFieldLabel,
+  sizeFieldPlaceholder,
+} from "@/lib/productSize";
 import type { Metal, Product, ProductInput, ProductStatus } from "@/types";
 import ui from "@/components/ui.module.css";
 import styles from "./Pages.module.css";
@@ -52,6 +62,7 @@ const emptyForm: CatalogForm = {
   metalOther: "",
   stones: "",
   weightGrams: undefined,
+  size: "",
   priceMayoreo: 0,
   priceMenudeo: 0,
   inventoryMode: "catalog",
@@ -97,7 +108,8 @@ export function CatalogPage() {
         p.name.toLowerCase().includes(term) ||
         p.sku.toLowerCase().includes(term) ||
         p.barcode.includes(term) ||
-        p.category.toLowerCase().includes(term)
+        p.category.toLowerCase().includes(term) ||
+        (p.size?.toLowerCase().includes(term) ?? false)
       );
     });
   }, [products, q, statusFilter]);
@@ -110,6 +122,11 @@ export function CatalogPage() {
     );
     return { pieces, value, skus: products.length };
   }, [products]);
+
+  const sizeGroups = useMemo(() => {
+    const groups = groupProductsByModel(products);
+    return filterSizeGroups(groups, q);
+  }, [products, q]);
 
   function openCreate() {
     setEditing(null);
@@ -133,11 +150,35 @@ export function CatalogPage() {
       metalOther: p.metalOther ?? "",
       stones: p.stones ?? "",
       weightGrams: p.weightGrams,
+      size: p.size ?? "",
       priceMayoreo: p.priceMayoreo,
       priceMenudeo: p.priceMenudeo,
       inventoryMode: "catalog",
       stock: p.stock,
       status: p.status,
+      image: p.image,
+      notes: p.notes ?? "",
+    });
+    setError("");
+    setShowForm(true);
+  }
+
+  function openAddSizeVariant(p: Product) {
+    setEditing(null);
+    setForm({
+      name: p.name,
+      inventoryCode: "",
+      category: p.category,
+      metal: p.metal,
+      metalOther: p.metalOther ?? "",
+      stones: p.stones ?? "",
+      weightGrams: p.weightGrams,
+      size: "",
+      priceMayoreo: p.priceMayoreo,
+      priceMenudeo: p.priceMenudeo,
+      inventoryMode: "catalog",
+      stock: 1,
+      status: "disponible",
       image: p.image,
       notes: p.notes ?? "",
     });
@@ -157,6 +198,12 @@ export function CatalogPage() {
     }
     if (form.priceMayoreo < 0 || form.priceMenudeo < 0) {
       setError("Los precios no pueden ser negativos.");
+      return;
+    }
+    if (categoryUsesSize(form.category) && !form.size?.trim()) {
+      setError(
+        `Indica ${sizeFieldLabel(form.category).toLowerCase()} para separar el stock por medida.`
+      );
       return;
     }
     const { inventoryCode, ...formFields } = form;
@@ -208,8 +255,9 @@ export function CatalogPage() {
     <div>
       <h1 className={ui.pageTitle}>Inventario</h1>
       <p className={ui.pageDesc}>
-        Mismo SKU para piezas iguales (mismo diseño y precio). Indica cuántas
-        hay en stock; el sistema genera SKU y código de barras.
+        Piezas iguales comparten SKU y stock. En anillos, pulseras y cadenas,
+        cada talla o longitud lleva su propio código; abajo ves el resumen por
+        modelo.
       </p>
 
       <div className={ui.gridKpi}>
@@ -242,11 +290,42 @@ export function CatalogPage() {
         <input
           className={ui.input}
           style={{ maxWidth: 360 }}
-          placeholder="Buscar por nombre, SKU o código de barras…"
+          placeholder="Buscar por nombre, talla, SKU o código de barras…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
+
+      {sizeGroups.length > 0 && (
+        <section
+          className={styles.sizeGroupPanel}
+          aria-labelledby="size-group-title"
+        >
+          <h2 id="size-group-title" className={styles.sizeGroupTitle}>
+            Stock por modelo (tallas y longitudes)
+          </h2>
+          <p className={styles.sizeGroupDesc}>
+            Mismo nombre de pieza agrupado; cada medida mantiene su código y
+            existencias.
+          </p>
+          <ul className={styles.sizeGroupList}>
+            {sizeGroups.map((g) => (
+              <li key={g.key} className={styles.sizeGroupRow}>
+                <div className={styles.sizeGroupHead}>
+                  <strong className={styles.sizeGroupName}>{g.name}</strong>
+                  <span className={ui.badge}>{g.category}</span>
+                  <span className={styles.sizeGroupTotal}>
+                    {g.totalStock} pza{g.totalStock === 1 ? "" : "s"} total
+                  </span>
+                </div>
+                <p className={styles.sizeGroupVariants}>
+                  {formatSizeGroupLine(g)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {products.length > 0 && (
         <div className={styles.catalogFilters}>
@@ -295,6 +374,7 @@ export function CatalogPage() {
                 <th>SKU</th>
                 <th>Código barras</th>
                 <th>Pieza</th>
+                <th>Talla / medida</th>
                 <th>Material</th>
                 <th>Mayoreo</th>
                 <th>Menudeo</th>
@@ -325,6 +405,7 @@ export function CatalogPage() {
                       {p.stones ? ` · ${p.stones}` : ""}
                     </div>
                   </td>
+                  <td>{p.size?.trim() || "—"}</td>
                   <td>{metalLabel(p.metal, p.metalOther)}</td>
                   <td>{formatMoney(p.priceMayoreo)}</td>
                   <td>{formatMoney(p.priceMenudeo)}</td>
@@ -369,6 +450,16 @@ export function CatalogPage() {
                       >
                         Etiqueta
                       </button>
+                      {categoryUsesSize(p.category) && (
+                        <button
+                          type="button"
+                          className={ui.btn}
+                          onClick={() => openAddSizeVariant(p)}
+                          title="Mismo modelo, otra talla o longitud (nuevo código)"
+                        >
+                          + Talla
+                        </button>
+                      )}
                       <button
                         type="button"
                         className={ui.btn}
@@ -406,7 +497,9 @@ export function CatalogPage() {
             <p className={styles.formHint}>
               Código = <strong>iniciales de categoría + números</strong> (ej.
               Aretes → AR001, Cadenas → CD042). Se usa igual en SKU y en la
-              etiqueta de barras.
+              etiqueta de barras. En anillos, pulseras y cadenas,{" "}
+              <strong>cada talla o longitud es un código distinto</strong> con
+              su propio stock.
             </p>
             <form className={styles.formGrid} onSubmit={onSubmit}>
               <label className={styles.fieldFull}>
@@ -500,6 +593,16 @@ export function CatalogPage() {
                     setForm({ ...form, stones: e.target.value })
                   }
                   placeholder="Opcional"
+                />
+              </label>
+              <label>
+                <span>{sizeFieldLabel(form.category)}</span>
+                <input
+                  className={ui.input}
+                  value={form.size ?? ""}
+                  onChange={(e) => setForm({ ...form, size: e.target.value })}
+                  placeholder={sizeFieldPlaceholder(form.category)}
+                  required={categoryUsesSize(form.category)}
                 />
               </label>
               <label>
@@ -604,7 +707,7 @@ export function CatalogPage() {
                   className={ui.input}
                   value={form.notes ?? ""}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Talla, proveedor, observaciones…"
+                  placeholder="Proveedor, observaciones…"
                 />
               </label>
               {error && <p className={styles.formError}>{error}</p>}

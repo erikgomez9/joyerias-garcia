@@ -12,6 +12,7 @@ import { productPrice } from "@/lib/format";
 import { posProductBlockReason } from "@/lib/productAvailability";
 import { findProductByScan } from "@/lib/posScan";
 import { uid } from "@/lib/inventoryCodes";
+import { productDisplayName } from "@/lib/productSize";
 import type { OrderLine, Product } from "@/types";
 import ui from "@/components/ui.module.css";
 import styles from "./OrderLinesEditor.module.css";
@@ -102,13 +103,13 @@ export function OrderLinesEditor({
           key: uid(),
           productId: p.id,
           sku: p.sku,
-          name: p.name,
+          name: productDisplayName(p),
           qty: cap,
           unitPrice: productPrice(p, priceTier),
         },
       ]);
     }
-    setScanMsg(`Agregado: ${p.name}`);
+    setScanMsg(`Agregado: ${productDisplayName(p)}`);
     scanRef.current?.focus();
   }
 

@@ -87,6 +87,7 @@ productsRouter.post("/", async (req, res, next) => {
         body.metal === "otro" ? body.metalOther?.trim() : undefined,
       stones: body.stones?.trim() || undefined,
       weightGrams: body.weightGrams,
+      size: body.size?.trim() || undefined,
       priceMayoreo: Number(body.priceMayoreo) || 0,
       priceMenudeo: Number(body.priceMenudeo) || 0,
       inventoryMode,
@@ -145,6 +146,7 @@ productsRouter.patch("/:id", async (req, res, next) => {
     }
     if (body.stones !== undefined) patch.stones = body.stones.trim() || undefined;
     if (body.weightGrams !== undefined) patch.weightGrams = body.weightGrams;
+    if (body.size !== undefined) patch.size = body.size.trim() || undefined;
     if (body.priceMayoreo !== undefined) patch.priceMayoreo = body.priceMayoreo;
     if (body.priceMenudeo !== undefined) patch.priceMenudeo = body.priceMenudeo;
     if (body.inventoryMode !== undefined || body.stock !== undefined) {

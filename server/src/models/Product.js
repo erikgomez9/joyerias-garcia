@@ -14,6 +14,8 @@ const productSchema = new mongoose.Schema(
     metalOther: { type: String, trim: true },
     stones: { type: String, trim: true },
     weightGrams: { type: Number, min: 0 },
+    /** Talla (anillo) o longitud (cadena/pulsera), p. ej. "7", "45 cm" */
+    size: { type: String, trim: true },
     priceMayoreo: { type: Number, required: true, min: 0 },
     priceMenudeo: { type: Number, required: true, min: 0 },
     inventoryMode: {
@@ -57,6 +59,7 @@ export function docToProduct(doc) {
     metalOther: doc.metalOther,
     stones: doc.stones,
     weightGrams: doc.weightGrams,
+    size: doc.size?.trim() || undefined,
     priceMayoreo: doc.priceMayoreo,
     priceMenudeo: doc.priceMenudeo,
     inventoryMode: resolveInventoryMode(doc),

@@ -9,32 +9,32 @@ export function isCatalogSoldOut(product) {
 
 /** Actualiza fechas de agotado al cambiar stock (sobre documento mongoose). */
 export function touchWebCatalogOnStockChange(doc) {
-  if (!doc.inWebCatalog) return;
   if (isCatalogSoldOut(doc)) {
     if (!doc.catalogSoldOutSince) {
       doc.catalogSoldOutSince = new Date();
     }
   } else {
     doc.catalogSoldOutSince = undefined;
+    doc.catalogWebHidden = false;
   }
 }
 
 export function catalogSoldOutExpired(doc, now = new Date()) {
-  if (!doc.inWebCatalog || !isCatalogSoldOut(doc)) return false;
+  if (!isCatalogSoldOut(doc)) return false;
   if (!doc.catalogSoldOutSince) return false;
   const since = new Date(doc.catalogSoldOutSince).getTime();
   return now.getTime() - since >= GRACE_MS;
 }
 
-/** Quita del catálogo web (no borra del inventario). */
-export function removeFromWebCatalog(doc) {
-  doc.inWebCatalog = false;
+/** Oculta del catálogo web tras la gracia (no borra del inventario). */
+export function hideFromWebCatalogAfterGrace(doc) {
+  doc.catalogWebHidden = true;
   doc.catalogSoldOutSince = undefined;
 }
 
+/** Todo el inventario entra al catálogo salvo ocultas por regla de agotado. */
 export function shouldListOnWebCatalog(doc, now = new Date()) {
-  if (!doc.inWebCatalog) return false;
-  if (doc.status === "danado") return false;
+  if (doc.catalogWebHidden) return false;
   if (catalogSoldOutExpired(doc, now)) return false;
   return true;
 }
@@ -54,7 +54,8 @@ export function toPublicCatalogItem(doc, showPrices) {
     soldOut,
     soldOutLabel: soldOut ? "Agotada" : undefined,
   };
-  if (showPrices && !soldOut) {
+  if (showPrices) {
+    item.priceMayoreo = doc.priceMayoreo;
     item.priceMenudeo = doc.priceMenudeo;
   }
   return item;

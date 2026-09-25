@@ -1,10 +1,10 @@
 import { Router } from "express";
 import {
   catalogSoldOutExpired,
-  removeFromWebCatalog,
+  hideFromWebCatalogAfterGrace,
+  isCatalogSoldOut,
   shouldListOnWebCatalog,
   toPublicCatalogItem,
-  touchWebCatalogOnStockChange,
 } from "../lib/webCatalog.js";
 import {
   CatalogWebSettingsModel,
@@ -23,14 +23,14 @@ async function resolveSettingsBySlug(slug) {
 
 async function expireStaleCatalogProducts() {
   const candidates = await ProductModel.find({
-    inWebCatalog: true,
+    catalogWebHidden: { $ne: true },
     stock: { $lte: 0 },
     catalogSoldOutSince: { $exists: true, $ne: null },
   });
   const now = new Date();
   for (const doc of candidates) {
     if (catalogSoldOutExpired(doc, now)) {
-      removeFromWebCatalog(doc);
+      hideFromWebCatalogAfterGrace(doc);
       await doc.save();
     }
   }
@@ -50,10 +50,21 @@ catalogWebRouter.get("/public/:slug", async (req, res, next) => {
     const preciosParam = String(req.query.precios ?? "1").toLowerCase();
     const showPrices = !["0", "false", "no", "sin"].includes(preciosParam);
 
-    const docs = await ProductModel.find({ inWebCatalog: true }).sort({
+    const docs = await ProductModel.find({}).sort({
       category: 1,
       name: 1,
     });
+
+    for (const doc of docs) {
+      if (
+        isCatalogSoldOut(doc) &&
+        !doc.catalogWebHidden &&
+        !doc.catalogSoldOutSince
+      ) {
+        doc.catalogSoldOutSince = doc.updatedAt ?? new Date();
+        await doc.save();
+      }
+    }
 
     const now = new Date();
     const items = docs

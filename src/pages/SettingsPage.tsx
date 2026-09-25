@@ -78,10 +78,10 @@ export function SettingsPage() {
           Catálogo web (vitrina)
         </h2>
         <p style={{ margin: "0 0 0.75rem", color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.5 }}>
-          Dos enlaces: <strong>con precios</strong> y <strong>sin precios</strong>.
-          Solo aparecen piezas marcadas en Inventario como «Catálogo web».
-          Si se agotan, muestran <strong>Agotada</strong> hasta{" "}
-          {CATALOG_SOLD_OUT_GRACE_DAYS} días; después se quitan del enlace (siguen en inventario).
+          Dos enlaces: <strong>con precios</strong> (mayoreo y menudeo) y{" "}
+          <strong>sin precios</strong>. Muestra <strong>todo el inventario</strong> en
+          tiempo real. Si una pieza se agota, verás <strong>Agotada</strong> hasta{" "}
+          {CATALOG_SOLD_OUT_GRACE_DAYS} días; después desaparece del enlace (sigue en inventario).
         </p>
         {inventorySource !== "mongo" ? (
           <p style={{ color: "var(--text-muted)" }}>
@@ -155,7 +155,7 @@ export function SettingsPage() {
               </p>
             ) : null}
             <p style={{ margin: "0.75rem 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              En Inventario activa «Catálogo web» en cada joya que quieras publicar.
+              Cada alta o venta en inventario se refleja al abrir o recargar el enlace.
             </p>
           </>
         ) : (

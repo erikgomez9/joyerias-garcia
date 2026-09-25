@@ -107,6 +107,7 @@ export interface PublicCatalogItem {
   sku: string;
   soldOut: boolean;
   soldOutLabel?: string;
+  priceMayoreo?: number;
   priceMenudeo?: number;
 }
 

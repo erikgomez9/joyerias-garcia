@@ -32,8 +32,10 @@ const productSchema = new mongoose.Schema(
     image: { type: String, default: "" },
     notes: { type: String, trim: true },
     inWebCatalog: { type: Boolean, default: false, index: true },
-    /** Cuándo quedó sin stock estando en catálogo web (para ocultar tras 7 días). */
+    /** Cuándo quedó sin stock (para ocultar del catálogo web tras 7 días). */
     catalogSoldOutSince: { type: Date },
+    /** Oculta automáticamente del catálogo web; se limpia al reponer stock. */
+    catalogWebHidden: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

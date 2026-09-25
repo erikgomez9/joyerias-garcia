@@ -82,11 +82,30 @@
   margin: 0;
 }
 
-.price {
+.prices {
   margin-top: auto;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #9a7b2c;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-top: 0.35rem;
+}
+
+.priceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #6b6358;
+}
+
+.priceRow strong {
+  font-size: 0.82rem;
+  color: #1a1508;
+}
+
+.priceMenudeo {
+  color: #9a7b2c !important;
 }
 
 .badgeSoldOut {

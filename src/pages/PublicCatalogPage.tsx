@@ -80,8 +80,8 @@ export function PublicCatalogPage({ showPrices }: Props) {
         <h1 className={styles.brand}>{data.title}</h1>
         <p className={styles.sub}>
           {showPrices
-            ? "Precios de referencia (menudeo)"
-            : "Selección de piezas — consulta precio en tienda"}
+            ? "Precios mayoreo y menudeo · inventario en tiempo real"
+            : "Todo el inventario · consulta precio en tienda"}
         </p>
       </header>
 
@@ -124,9 +124,24 @@ export function PublicCatalogPage({ showPrices }: Props) {
                       <span className={styles.badgeSoldOut}>
                         {item.soldOutLabel ?? "Agotada"}
                       </span>
-                    ) : showPrices && item.priceMenudeo != null ? (
-                      <div className={styles.price}>
-                        {formatMoney(item.priceMenudeo)}
+                    ) : null}
+                    {showPrices &&
+                    (item.priceMayoreo != null || item.priceMenudeo != null) ? (
+                      <div className={styles.prices}>
+                        {item.priceMayoreo != null ? (
+                          <div className={styles.priceRow}>
+                            <span>Mayoreo</span>
+                            <strong>{formatMoney(item.priceMayoreo)}</strong>
+                          </div>
+                        ) : null}
+                        {item.priceMenudeo != null ? (
+                          <div className={styles.priceRow}>
+                            <span>Menudeo</span>
+                            <strong className={styles.priceMenudeo}>
+                              {formatMoney(item.priceMenudeo)}
+                            </strong>
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { catalogWebApi, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, metalLabel } from "@/lib/format";
 import { productDisplayName } from "@/lib/productSize";
@@ -16,12 +17,42 @@ function itemTitle(item: PublicCatalogItem): string {
   return productDisplayName({ name: item.name, size: item.size });
 }
 
+function categoryAnchorId(category: string): string {
+  return `vitrina-cat-${category
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")}`;
+}
+
+function ZoomIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M15.5 15.5L20 20"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10.5 7.5v6M7.5 10.5h6"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function PublicCatalogPage({ showPrices }: Props) {
   const { slug = "" } = useParams();
   const [data, setData] = useState<PublicCatalogResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
 
   const load = useCallback(
     async (silent = false) => {
@@ -78,6 +109,33 @@ export function PublicCatalogPage({ showPrices }: Props) {
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [data]);
 
+  const categories = useMemo(
+    () => byCategory.map(([name]) => name),
+    [byCategory]
+  );
+
+  const visibleSections = useMemo(() => {
+    if (categoryFilter === "all") return byCategory;
+    return byCategory.filter(([name]) => name === categoryFilter);
+  }, [byCategory, categoryFilter]);
+
+  function selectCategory(cat: string) {
+    setCategoryFilter(cat);
+    if (cat !== "all") {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById(categoryAnchorId(cat))
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function openZoom(item: PublicCatalogItem) {
+    setZoom({ src: item.image, alt: itemTitle(item) });
+  }
+
   if (loading && !data) {
     return (
       <div className={styles.page}>
@@ -95,7 +153,11 @@ export function PublicCatalogPage({ showPrices }: Props) {
           <strong>Conectado a MongoDB</strong> (no modo local). En Vercel debe
           existir <code>VITE_API_BASE</code> apuntando a tu API en Render.
         </p>
-        <button type="button" className={styles.refreshBtn} onClick={() => void load(false)}>
+        <button
+          type="button"
+          className={styles.refreshBtn}
+          onClick={() => void load(false)}
+        >
           Reintentar
         </button>
       </div>
@@ -135,6 +197,34 @@ export function PublicCatalogPage({ showPrices }: Props) {
         </div>
       </header>
 
+      {categories.length > 0 && (
+        <nav className={styles.categoryNav} aria-label="Categorías">
+          <div className={styles.chips} role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={categoryFilter === "all"}
+              className={`${styles.chip} ${categoryFilter === "all" ? styles.chipActive : ""}`}
+              onClick={() => selectCategory("all")}
+            >
+              Todas
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                role="tab"
+                aria-selected={categoryFilter === cat}
+                className={`${styles.chip} ${categoryFilter === cat ? styles.chipActive : ""}`}
+                onClick={() => selectCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
+
       {error ? <p className={styles.errorBanner}>{error}</p> : null}
 
       {data.items.length === 0 ? (
@@ -144,18 +234,36 @@ export function PublicCatalogPage({ showPrices }: Props) {
           en este navegador).
         </p>
       ) : (
-        byCategory.map(([category, items]) => (
-          <section key={category}>
-            <h2 className={styles.categoryTitle}>{category}</h2>
+        visibleSections.map(([category, items]) => (
+          <section
+            key={category}
+            id={categoryAnchorId(category)}
+            className={styles.section}
+            aria-labelledby={`title-${categoryAnchorId(category)}`}
+          >
+            <h2
+              id={`title-${categoryAnchorId(category)}`}
+              className={styles.categoryTitle}
+            >
+              {category}
+            </h2>
             <ul className={styles.grid}>
               {items.map((item) => (
                 <li
                   key={item.id}
                   className={`${styles.card} ${item.soldOut ? styles.cardSoldOut : ""}`}
                 >
-                  <div className={styles.imageWrap}>
-                    <img src={item.image} alt={itemTitle(item)} loading="lazy" />
-                  </div>
+                  <button
+                    type="button"
+                    className={styles.imageWrap}
+                    aria-label={`Ampliar foto de ${itemTitle(item)}`}
+                    onClick={() => openZoom(item)}
+                  >
+                    <img src={item.image} alt="" loading="lazy" />
+                    <span className={styles.zoomBtn} aria-hidden>
+                      <ZoomIcon />
+                    </span>
+                  </button>
                   <div className={styles.body}>
                     <p className={styles.name}>{itemTitle(item)}</p>
                     <p className={styles.meta}>
@@ -199,6 +307,13 @@ export function PublicCatalogPage({ showPrices }: Props) {
       <footer className={styles.footer}>
         Se actualiza solo cada 30 s · Joyerías García
       </footer>
+
+      <ImageLightbox
+        open={zoom != null}
+        src={zoom?.src ?? ""}
+        alt={zoom?.alt ?? ""}
+        onClose={() => setZoom(null)}
+      />
     </div>
   );
 }

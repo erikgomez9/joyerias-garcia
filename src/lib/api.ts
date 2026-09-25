@@ -28,6 +28,7 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
+    cache: "no-store",
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -35,18 +36,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
+  const contentType = res.headers.get("content-type") ?? "";
+
   if (!res.ok) {
     let message = res.statusText;
     try {
       const body = (await res.json()) as { error?: string };
       if (body.error) message = body.error;
     } catch {
-      /* respuesta no JSON */
+      if (contentType.includes("text/html")) {
+        message =
+          "La API no respondió (¿falta VITE_API_BASE en Vercel hacia Render?).";
+      }
     }
     throw new ApiError(message, res.status);
   }
 
   if (res.status === 204) return undefined as T;
+
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      "La app no está leyendo la API de inventario. En Vercel configura VITE_API_BASE con la URL de Render (/api/v1) y redeploy.",
+      502
+    );
+  }
+
   return res.json() as Promise<T>;
 }
 
@@ -240,9 +254,17 @@ export const catalogWebApi = {
   },
 
   fetchPublic(slug: string, showPrices: boolean): Promise<PublicCatalogResponse> {
-    const q = new URLSearchParams({ precios: showPrices ? "1" : "0" });
+    const q = new URLSearchParams({
+      precios: showPrices ? "1" : "0",
+      _: String(Date.now()),
+    });
     return request<PublicCatalogResponse>(
       `/catalog-web/public/${encodeURIComponent(slug)}?${q}`
     );
   },
 };
+
+/** URL base que usa el navegador (útil para diagnosticar Vercel sin VITE_API_BASE). */
+export function apiBaseForDiagnostics(): string {
+  return API_BASE || "(vacío → /api/v1 en este dominio)";
+}

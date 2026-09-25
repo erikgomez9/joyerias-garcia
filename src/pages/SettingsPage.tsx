@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePos } from "@/context/PosContext";
-import { catalogWebApi } from "@/lib/api";
+import { apiBaseForDiagnostics, catalogWebApi } from "@/lib/api";
 import { publicCatalogAbsoluteUrl } from "@/lib/webCatalogUrls";
 import { CATALOG_SOLD_OUT_GRACE_DAYS } from "@/lib/webCatalogConstants";
 import type { CatalogWebSettings } from "@/types";
@@ -83,6 +83,35 @@ export function SettingsPage() {
           tiempo real. Si una pieza se agota, verás <strong>Agotada</strong> hasta{" "}
           {CATALOG_SOLD_OUT_GRACE_DAYS} días; después desaparece del enlace (sigue en inventario).
         </p>
+        {inventorySource !== "mongo" ? (
+          <div
+            style={{
+              padding: "0.75rem",
+              borderRadius: 8,
+              background: "rgba(232, 93, 93, 0.12)",
+              border: "1px solid var(--danger)",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <p style={{ margin: 0, color: "var(--danger)", fontSize: "0.9rem" }}>
+              <strong>El catálogo web no verá joyas nuevas</strong> mientras la app
+              esté en modo local. Las piezas que das de alta solo quedan en este
+              navegador. Conecta la API (MongoDB) y vuelve a registrar inventario,
+              o usa la app desplegada con <code>VITE_API_BASE</code> correcto.
+            </p>
+          </div>
+        ) : null}
+        {inventorySource === "mongo" ? (
+          <p
+            style={{
+              margin: "0 0 0.75rem",
+              fontSize: "0.78rem",
+              color: "var(--text-muted)",
+            }}
+          >
+            API en uso: <code>{apiBaseForDiagnostics()}</code>
+          </p>
+        ) : null}
         {inventorySource !== "mongo" ? (
           <p style={{ color: "var(--text-muted)" }}>
             Conecta MongoDB para activar los enlaces públicos.

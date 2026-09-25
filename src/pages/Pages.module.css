@@ -5,6 +5,17 @@
   margin-bottom: 1rem;
 }
 
+.catalogLocalWarn {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(232, 93, 93, 0.12);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .sizeGroupPanel {
   margin: 1.25rem 0 1.5rem;
   padding: 1rem 1.15rem;

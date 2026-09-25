@@ -71,11 +71,17 @@ catalogWebRouter.get("/public/:slug", async (req, res, next) => {
       .filter((d) => shouldListOnWebCatalog(d, now))
       .map((d) => toPublicCatalogItem(d, showPrices));
 
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
     res.json({
       title: settings.title ?? "Joyerías García",
       slug: settings.slug,
       showPrices,
       updatedAt: new Date().toISOString(),
+      itemCount: items.length,
       items,
     });
   } catch (err) {

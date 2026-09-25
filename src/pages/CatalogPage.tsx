@@ -79,6 +79,7 @@ export function CatalogPage() {
     updateProduct,
     removeProduct,
     adjustStock,
+    inventorySource,
   } = usePos();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>("todos");
@@ -259,6 +260,13 @@ export function CatalogPage() {
         cada talla o longitud lleva su propio código; abajo ves el resumen por
         modelo.
       </p>
+
+      {inventorySource === "local" && (
+        <div className={styles.catalogLocalWarn} role="status">
+          Inventario solo en este navegador. El catálogo web lee MongoDB: estas
+          joyas no aparecerán en el enlace hasta conectar la API (Ajustes).
+        </div>
+      )}
 
       <div className={ui.gridKpi}>
         <div className={ui.card}>

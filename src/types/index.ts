@@ -116,6 +116,7 @@ export interface PublicCatalogResponse {
   slug: string;
   showPrices: boolean;
   updatedAt: string;
+  itemCount?: number;
   items: PublicCatalogItem[];
 }
 

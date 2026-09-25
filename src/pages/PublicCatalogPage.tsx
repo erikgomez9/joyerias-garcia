@@ -273,8 +273,8 @@ export function PublicCatalogPage({ showPrices }: Props) {
                       {item.stones ? ` · ${item.stones}` : ""}
                     </p>
                     {item.soldOut ? (
-                      <span className={styles.badgeSoldOut}>
-                        {item.soldOutLabel ?? "Agotada"}
+                      <span className={styles.badgeSoldOut} role="status">
+                        {item.soldOutLabel ?? "Agotada — no disponible"}
                       </span>
                     ) : null}
                     {showPrices &&

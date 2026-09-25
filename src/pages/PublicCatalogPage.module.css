@@ -90,7 +90,15 @@
 }
 
 .cardSoldOut {
-  opacity: 0.75;
+  opacity: 0.92;
+}
+
+.cardSoldOut .imageWrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 12, 14, 0.35);
+  pointer-events: none;
 }
 
 .imageWrap {
@@ -188,17 +196,20 @@
 }
 
 .badgeSoldOut {
-  display: inline-block;
-  margin-top: 0.35rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 4px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: 0.4rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(232, 93, 93, 0.18);
+  border: 1px solid var(--danger);
+  color: #ffb4b4;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  box-shadow: 0 0 0 1px rgba(232, 93, 93, 0.15);
 }
 
 .empty,

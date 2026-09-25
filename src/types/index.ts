@@ -89,7 +89,38 @@ export interface Product {
   status: ProductStatus;
   image: string;
   notes?: string;
+  inWebCatalog?: boolean;
+  catalogSoldOutSince?: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicCatalogItem {
+  id: string;
+  name: string;
+  category: string;
+  metal?: Metal;
+  metalOther?: string;
+  stones?: string;
+  size?: string;
+  image: string;
+  sku: string;
+  soldOut: boolean;
+  soldOutLabel?: string;
+  priceMenudeo?: number;
+}
+
+export interface PublicCatalogResponse {
+  title: string;
+  slug: string;
+  showPrices: boolean;
+  updatedAt: string;
+  items: PublicCatalogItem[];
+}
+
+export interface CatalogWebSettings {
+  slug: string;
+  title: string;
   updatedAt: string;
 }
 
@@ -112,6 +143,7 @@ export interface ProductInput {
   status?: ProductStatus;
   image?: string;
   notes?: string;
+  inWebCatalog?: boolean;
 }
 
 export interface CartLine {

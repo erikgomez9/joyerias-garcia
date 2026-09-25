@@ -8,6 +8,7 @@ import {
   normalizeStock,
   validateInventoryBody,
 } from "../lib/inventoryMode.js";
+import { touchWebCatalogOnStockChange } from "../lib/webCatalog.js";
 import { ProductModel, docToProduct } from "../models/Product.js";
 
 export const productsRouter = Router();
@@ -95,7 +96,10 @@ productsRouter.post("/", async (req, res, next) => {
       status: body.status ?? "disponible",
       image: body.image?.trim() || "",
       notes: body.notes?.trim() || undefined,
+      inWebCatalog: Boolean(body.inWebCatalog),
     });
+    touchWebCatalogOnStockChange(doc);
+    await doc.save();
 
     res.status(201).json(docToProduct(doc));
   } catch (err) {
@@ -156,6 +160,9 @@ productsRouter.patch("/:id", async (req, res, next) => {
     if (body.status !== undefined) patch.status = body.status;
     if (body.image !== undefined) patch.image = body.image.trim();
     if (body.notes !== undefined) patch.notes = body.notes.trim() || undefined;
+    if (body.inWebCatalog !== undefined) {
+      patch.inWebCatalog = Boolean(body.inWebCatalog);
+    }
 
     if (body.sku !== undefined || body.barcode !== undefined) {
       const sku = normalizeJewelryCode(
@@ -194,6 +201,14 @@ productsRouter.patch("/:id", async (req, res, next) => {
       { $set: patch },
       { new: true, runValidators: true }
     );
+    if (
+      body.inWebCatalog !== undefined ||
+      body.stock !== undefined ||
+      patch.stock !== undefined
+    ) {
+      touchWebCatalogOnStockChange(doc);
+      await doc.save();
+    }
     res.json(docToProduct(doc));
   } catch (err) {
     next(err);
@@ -221,6 +236,7 @@ productsRouter.patch("/:id/stock", async (req, res, next) => {
     ) {
       doc.status = "disponible";
     }
+    touchWebCatalogOnStockChange(doc);
     await doc.save();
     res.json(docToProduct(doc));
   } catch (err) {

@@ -6,6 +6,7 @@ import { damagesRouter } from "./routes/damages.js";
 import { warrantiesRouter } from "./routes/warranties.js";
 import { clientsRouter } from "./routes/clients.js";
 import { ordersRouter } from "./routes/orders.js";
+import { catalogWebRouter } from "./routes/catalogWeb.js";
 import { productsRouter } from "./routes/products.js";
 import { reportsRouter } from "./routes/reports.js";
 import { salesRouter } from "./routes/sales.js";
@@ -47,6 +48,7 @@ app.get("/api/v1/health", (_req, res) => {
   });
 });
 
+app.use("/api/v1/catalog-web", catalogWebRouter);
 app.use("/api/v1/products", productsRouter);
 app.use("/api/v1/sales", salesRouter);
 app.use("/api/v1/reports", reportsRouter);

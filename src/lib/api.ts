@@ -1,5 +1,6 @@
 import type { SalesPeriod } from "@/lib/saleDateFilter";
 import type {
+  CatalogWebSettings,
   Client,
   ClientInput,
   OrderInput,
@@ -7,6 +8,7 @@ import type {
   PaymentMix,
   Product,
   ProductInput,
+  PublicCatalogResponse,
   SaleRecord,
 } from "@/types";
 import type { DamageRecord, WarrantyCaseRecord, WarrantyType } from "@/types";
@@ -222,5 +224,25 @@ export const reportsApi = {
   live(period: SalesPeriod = "month"): Promise<LiveSalesReport> {
     const q = new URLSearchParams({ period });
     return request<LiveSalesReport>(`/reports/live?${q}`);
+  },
+};
+
+export const catalogWebApi = {
+  getSettings(): Promise<CatalogWebSettings> {
+    return request<CatalogWebSettings>("/catalog-web/settings");
+  },
+
+  updateSettings(patch: Partial<CatalogWebSettings>): Promise<CatalogWebSettings> {
+    return request<CatalogWebSettings>("/catalog-web/settings", {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+  },
+
+  fetchPublic(slug: string, showPrices: boolean): Promise<PublicCatalogResponse> {
+    const q = new URLSearchParams({ precios: showPrices ? "1" : "0" });
+    return request<PublicCatalogResponse>(
+      `/catalog-web/public/${encodeURIComponent(slug)}?${q}`
+    );
   },
 };

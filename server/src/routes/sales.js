@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { assertSellableAtPos } from "../lib/productAvailability.js";
 import { validatePaymentMix } from "../lib/paymentMix.js";
 import { priceTierForSaleLines } from "../lib/salePricing.js";
+import { touchWebCatalogOnStockChange } from "../lib/webCatalog.js";
 import { ProductModel } from "../models/Product.js";
 import { SaleModel, docToSale } from "../models/Sale.js";
 
@@ -65,6 +66,7 @@ salesRouter.post("/checkout", async (req, res, next) => {
 
         product.stock -= qty;
         if (product.stock === 0) product.status = "vendido";
+        touchWebCatalogOnStockChange(product);
         await product.save({ session });
 
         lineItems.push({

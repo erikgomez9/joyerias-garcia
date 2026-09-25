@@ -31,6 +31,9 @@ const productSchema = new mongoose.Schema(
     },
     image: { type: String, default: "" },
     notes: { type: String, trim: true },
+    inWebCatalog: { type: Boolean, default: false, index: true },
+    /** Cuándo quedó sin stock estando en catálogo web (para ocultar tras 7 días). */
+    catalogSoldOutSince: { type: Date },
   },
   { timestamps: true }
 );
@@ -67,6 +70,10 @@ export function docToProduct(doc) {
     status: doc.status,
     image: doc.image || DEFAULT_IMAGE,
     notes: doc.notes,
+    inWebCatalog: Boolean(doc.inWebCatalog),
+    catalogSoldOutSince: doc.catalogSoldOutSince
+      ? toIso(doc.catalogSoldOutSince)
+      : undefined,
     createdAt: toIso(doc.createdAt),
     updatedAt: toIso(doc.updatedAt),
   };

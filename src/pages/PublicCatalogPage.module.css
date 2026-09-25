@@ -1,0 +1,122 @@
+.page {
+  min-height: 100%;
+  background: #faf8f4;
+  color: #1a1508;
+}
+
+.header {
+  text-align: center;
+  padding: 1.75rem 1rem 1rem;
+  border-bottom: 1px solid rgba(154, 123, 44, 0.25);
+  background: linear-gradient(180deg, #fff 0%, #faf8f4 100%);
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 600;
+  margin: 0;
+  color: #1a1508;
+}
+
+.sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #6b6358;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  padding: 1.25rem 1rem 2.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.cardSoldOut {
+  opacity: 0.82;
+}
+
+.imageWrap {
+  aspect-ratio: 1;
+  background: #f0ebe3;
+  overflow: hidden;
+}
+
+.imageWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.body {
+  padding: 0.65rem 0.7rem 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.meta {
+  font-size: 0.72rem;
+  color: #6b6358;
+  margin: 0;
+}
+
+.price {
+  margin-top: auto;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #9a7b2c;
+}
+
+.badgeSoldOut {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #3a3a3a;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.empty,
+.error,
+.loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b6358;
+}
+
+.error {
+  color: #b85c5c;
+}
+
+.footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.75rem;
+  color: #9b968a;
+}

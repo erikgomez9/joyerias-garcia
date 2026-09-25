@@ -70,6 +70,7 @@ const emptyForm: CatalogForm = {
   status: "disponible",
   image: "",
   notes: "",
+  inWebCatalog: false,
 };
 
 export function CatalogPage() {
@@ -158,9 +159,19 @@ export function CatalogPage() {
       status: p.status,
       image: p.image,
       notes: p.notes ?? "",
+      inWebCatalog: p.inWebCatalog ?? false,
     });
     setError("");
     setShowForm(true);
+  }
+
+  async function toggleWebCatalog(p: Product) {
+    setStockBusyId(p.id);
+    try {
+      await updateProduct(p.id, { inWebCatalog: !p.inWebCatalog });
+    } finally {
+      setStockBusyId(null);
+    }
   }
 
   function openAddSizeVariant(p: Product) {
@@ -181,6 +192,7 @@ export function CatalogPage() {
       status: "disponible",
       image: p.image,
       notes: p.notes ?? "",
+      inWebCatalog: false,
     });
     setError("");
     setShowForm(true);
@@ -379,6 +391,7 @@ export function CatalogPage() {
                 <th>Mayoreo</th>
                 <th>Menudeo</th>
                 <th>Stock</th>
+                <th>Web</th>
                 <th>Estado</th>
                 <th />
               </tr>
@@ -431,6 +444,21 @@ export function CatalogPage() {
                         +
                       </button>
                     </div>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className={ui.btn}
+                      disabled={stockBusyId === p.id}
+                      title={
+                        p.inWebCatalog
+                          ? "Quitar del catálogo web"
+                          : "Publicar en catálogo web"
+                      }
+                      onClick={() => void toggleWebCatalog(p)}
+                    >
+                      {p.inWebCatalog ? "Publicada" : "No"}
+                    </button>
                   </td>
                   <td>
                     <span
@@ -691,6 +719,19 @@ export function CatalogPage() {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className={styles.fieldFull}>
+                <span>
+                  <input
+                    type="checkbox"
+                    checked={form.inWebCatalog ?? false}
+                    onChange={(e) =>
+                      setForm({ ...form, inWebCatalog: e.target.checked })
+                    }
+                    style={{ marginRight: "0.5rem" }}
+                  />
+                  Mostrar en catálogo web (enlace para clientes)
+                </span>
               </label>
               <label className={styles.fieldFull}>
                 <span>URL foto (opcional)</span>

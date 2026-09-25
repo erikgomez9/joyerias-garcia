@@ -1,16 +1,167 @@
+import { useCallback, useEffect, useState } from "react";
 import { usePos } from "@/context/PosContext";
+import { catalogWebApi } from "@/lib/api";
+import { publicCatalogAbsoluteUrl } from "@/lib/webCatalogUrls";
+import { CATALOG_SOLD_OUT_GRACE_DAYS } from "@/lib/webCatalogConstants";
+import type { CatalogWebSettings } from "@/types";
 import ui from "@/components/ui.module.css";
 import styles from "./Pages.module.css";
 
 export function SettingsPage() {
   const { inventorySource, inventoryError, refreshInventory } = usePos();
+  const [catalog, setCatalog] = useState<CatalogWebSettings | null>(null);
+  const [catalogError, setCatalogError] = useState("");
+  const [catalogBusy, setCatalogBusy] = useState(false);
+  const [copyMsg, setCopyMsg] = useState("");
+
+  const loadCatalog = useCallback(async () => {
+    if (inventorySource !== "mongo") return;
+    setCatalogError("");
+    try {
+      const s = await catalogWebApi.getSettings();
+      setCatalog(s);
+    } catch (err) {
+      setCatalog(null);
+      setCatalogError(
+        err instanceof Error ? err.message : "No se pudo cargar el catálogo web."
+      );
+    }
+  }, [inventorySource]);
+
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
+
+  async function copyLink(withPrices: boolean) {
+    if (!catalog) return;
+    const url = publicCatalogAbsoluteUrl(catalog.slug, withPrices);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyMsg(withPrices ? "Enlace con precios copiado." : "Enlace sin precios copiado.");
+      window.setTimeout(() => setCopyMsg(""), 2500);
+    } catch {
+      setCopyMsg("No se pudo copiar; selecciona el enlace manualmente.");
+    }
+  }
+
+  async function saveCatalogTitle(title: string) {
+    if (!catalog) return;
+    setCatalogBusy(true);
+    try {
+      const updated = await catalogWebApi.updateSettings({ title: title.trim() });
+      setCatalog(updated);
+    } catch (err) {
+      setCatalogError(
+        err instanceof Error ? err.message : "No se pudo guardar."
+      );
+    } finally {
+      setCatalogBusy(false);
+    }
+  }
+
+  const linkWithPrices = catalog
+    ? publicCatalogAbsoluteUrl(catalog.slug, true)
+    : "";
+  const linkNoPrices = catalog
+    ? publicCatalogAbsoluteUrl(catalog.slug, false)
+    : "";
 
   return (
     <div>
       <h1 className={ui.pageTitle}>Ajustes</h1>
       <p className={ui.pageDesc}>
-        Conexión con la API y MongoDB para inventario en la nube.
+        Conexión con la API y catálogo web para compartir con clientes.
       </p>
+
+      <div className={ui.card} style={{ maxWidth: 640, marginBottom: "1rem" }}>
+        <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>
+          Catálogo web (vitrina)
+        </h2>
+        <p style={{ margin: "0 0 0.75rem", color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.5 }}>
+          Dos enlaces: <strong>con precios</strong> y <strong>sin precios</strong>.
+          Solo aparecen piezas marcadas en Inventario como «Catálogo web».
+          Si se agotan, muestran <strong>Agotada</strong> hasta{" "}
+          {CATALOG_SOLD_OUT_GRACE_DAYS} días; después se quitan del enlace (siguen en inventario).
+        </p>
+        {inventorySource !== "mongo" ? (
+          <p style={{ color: "var(--text-muted)" }}>
+            Conecta MongoDB para activar los enlaces públicos.
+          </p>
+        ) : catalogError ? (
+          <p style={{ color: "var(--danger)" }}>{catalogError}</p>
+        ) : catalog ? (
+          <>
+            <label className={styles.fieldFull} style={{ display: "block", marginBottom: "0.75rem" }}>
+              <span className={styles.catalogFiltersLabel}>Título de la vitrina</span>
+              <input
+                className={ui.input}
+                defaultValue={catalog.title}
+                disabled={catalogBusy}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v && v !== catalog.title) void saveCatalogTitle(v);
+                }}
+              />
+            </label>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <div className={styles.catalogFiltersLabel}>Con precios (menudeo)</div>
+              <code
+                style={{
+                  display: "block",
+                  padding: "0.5rem",
+                  fontSize: "0.78rem",
+                  wordBreak: "break-all",
+                  background: "var(--bg-elevated)",
+                  borderRadius: 8,
+                }}
+              >
+                {linkWithPrices}
+              </code>
+              <button
+                type="button"
+                className={`${ui.btn} ${ui.btnPrimary}`}
+                style={{ marginTop: "0.5rem" }}
+                onClick={() => void copyLink(true)}
+              >
+                Copiar enlace con precios
+              </button>
+            </div>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <div className={styles.catalogFiltersLabel}>Sin precios</div>
+              <code
+                style={{
+                  display: "block",
+                  padding: "0.5rem",
+                  fontSize: "0.78rem",
+                  wordBreak: "break-all",
+                  background: "var(--bg-elevated)",
+                  borderRadius: 8,
+                }}
+              >
+                {linkNoPrices}
+              </code>
+              <button
+                type="button"
+                className={ui.btn}
+                style={{ marginTop: "0.5rem" }}
+                onClick={() => void copyLink(false)}
+              >
+                Copiar enlace sin precios
+              </button>
+            </div>
+            {copyMsg ? (
+              <p style={{ margin: 0, color: "var(--gold)", fontSize: "0.85rem" }}>
+                {copyMsg}
+              </p>
+            ) : null}
+            <p style={{ margin: "0.75rem 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+              En Inventario activa «Catálogo web» en cada joya que quieras publicar.
+            </p>
+          </>
+        ) : (
+          <p style={{ color: "var(--text-muted)" }}>Cargando enlaces…</p>
+        )}
+      </div>
 
       <div className={ui.card} style={{ maxWidth: 560, marginBottom: "1rem" }}>
         <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>

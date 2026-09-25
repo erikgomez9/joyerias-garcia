@@ -1,0 +1,61 @@
+/** Tiempo que una pieza agotada sigue visible en el catálogo web. */
+export const CATALOG_SOLD_OUT_GRACE_DAYS = 7;
+
+const GRACE_MS = CATALOG_SOLD_OUT_GRACE_DAYS * 24 * 60 * 60 * 1000;
+
+export function isCatalogSoldOut(product) {
+  return (product.stock ?? 0) <= 0;
+}
+
+/** Actualiza fechas de agotado al cambiar stock (sobre documento mongoose). */
+export function touchWebCatalogOnStockChange(doc) {
+  if (!doc.inWebCatalog) return;
+  if (isCatalogSoldOut(doc)) {
+    if (!doc.catalogSoldOutSince) {
+      doc.catalogSoldOutSince = new Date();
+    }
+  } else {
+    doc.catalogSoldOutSince = undefined;
+  }
+}
+
+export function catalogSoldOutExpired(doc, now = new Date()) {
+  if (!doc.inWebCatalog || !isCatalogSoldOut(doc)) return false;
+  if (!doc.catalogSoldOutSince) return false;
+  const since = new Date(doc.catalogSoldOutSince).getTime();
+  return now.getTime() - since >= GRACE_MS;
+}
+
+/** Quita del catálogo web (no borra del inventario). */
+export function removeFromWebCatalog(doc) {
+  doc.inWebCatalog = false;
+  doc.catalogSoldOutSince = undefined;
+}
+
+export function shouldListOnWebCatalog(doc, now = new Date()) {
+  if (!doc.inWebCatalog) return false;
+  if (doc.status === "danado") return false;
+  if (catalogSoldOutExpired(doc, now)) return false;
+  return true;
+}
+
+export function toPublicCatalogItem(doc, showPrices) {
+  const soldOut = isCatalogSoldOut(doc);
+  const item = {
+    id: doc._id.toString(),
+    name: doc.name,
+    category: doc.category,
+    metal: doc.metal,
+    metalOther: doc.metalOther,
+    stones: doc.stones,
+    size: doc.size?.trim() || undefined,
+    image: doc.image,
+    sku: doc.sku,
+    soldOut,
+    soldOutLabel: soldOut ? "Agotada" : undefined,
+  };
+  if (showPrices && !soldOut) {
+    item.priceMenudeo = doc.priceMenudeo;
+  }
+  return item;
+}

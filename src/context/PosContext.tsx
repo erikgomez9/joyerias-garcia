@@ -159,6 +159,7 @@ function buildLocalProduct(input: ProductInput, prev: Product[]): Product {
     status: normalized.status ?? "disponible",
     image: normalized.image?.trim() || DEFAULT_IMAGE,
     notes: normalized.notes?.trim() || undefined,
+    inWebCatalog: Boolean(normalized.inWebCatalog),
     createdAt: now,
     updatedAt: now,
   };
@@ -343,6 +344,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
               patch.notes !== undefined
                 ? patch.notes.trim() || undefined
                 : p.notes,
+            inWebCatalog:
+              patch.inWebCatalog !== undefined
+                ? Boolean(patch.inWebCatalog)
+                : p.inWebCatalog,
             updatedAt: new Date().toISOString(),
           };
         })

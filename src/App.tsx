@@ -11,10 +11,19 @@ import { SalesReportPage } from "./pages/SalesReportPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DamagesPage } from "./pages/DamagesPage";
 import { WarrantyPage } from "./pages/WarrantyPage";
+import { PublicCatalogPage } from "./pages/PublicCatalogPage";
 
 export default function App() {
   return (
     <Routes>
+      <Route
+        path="/vitrina/:slug/sin-precios"
+        element={<PublicCatalogPage showPrices={false} />}
+      />
+      <Route
+        path="/vitrina/:slug"
+        element={<PublicCatalogPage showPrices={true} />}
+      />
       <Route path="/reportes" element={<ReportLayout />}>
         <Route index element={<SalesReportPage />} />
       </Route>

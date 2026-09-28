@@ -33,6 +33,39 @@ function itemAccessibleTitle(item: PublicCatalogItem): string {
   });
 }
 
+function CatalogBrand({
+  title,
+  tagline,
+  compact,
+}: {
+  title: string;
+  tagline: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={
+        compact ? styles.brandBlockCompact : styles.brandBlock
+      }
+    >
+      <span
+        className={compact ? styles.brandMarkSmall : styles.brandMark}
+        aria-hidden
+      />
+      <div className={styles.brandText}>
+        {compact ? (
+          <p className={styles.brandTitleCompact}>{title}</p>
+        ) : (
+          <h1 className={styles.brandTitle}>{title}</h1>
+        )}
+        <p className={compact ? styles.brandSubCompact : styles.brandSub}>
+          {tagline}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function CatalogSizeBadge({ item }: { item: PublicCatalogItem }) {
   const size = catalogSizeDisplay(item.category, item.size);
   if (!size) return null;
@@ -169,13 +202,70 @@ function CatalogProductCard({
 
 function MaterialCatalogSection({
   block,
+  storeTitle,
   showPrices,
   onZoom,
 }: {
   block: MaterialCatalogBlock;
+  storeTitle: string;
   showPrices: boolean;
   onZoom: (item: PublicCatalogItem) => void;
 }) {
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const visibleCategories = useMemo(() => {
+    if (activeCategory === "all") return block.categories;
+    return block.categories.filter((c) => c.category === activeCategory);
+  }, [block.categories, activeCategory]);
+
+  function scrollToCategory(category: string) {
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(categoryAnchorId(block.material, category))
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function selectCategory(next: string) {
+    setActiveCategory(next);
+    if (next !== "all") scrollToCategory(next);
+  }
+
+  const categoryNav =
+    block.categories.length > 0 ? (
+      <nav
+        className={styles.materialCategoryNav}
+        aria-label={`Categorías en catálogo ${block.material}`}
+      >
+        <div className={styles.materialCategoryChips} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeCategory === "all"}
+            className={`${styles.chip} ${activeCategory === "all" ? styles.chipActive : ""}`}
+            onClick={() => selectCategory("all")}
+          >
+            Todas
+          </button>
+          {block.categories.map(({ category, items }) => (
+            <button
+              key={category}
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === category}
+              className={`${styles.chip} ${activeCategory === category ? styles.chipActive : ""}`}
+              onClick={() => selectCategory(category)}
+            >
+              {category}
+              <span className={styles.chipCount} aria-hidden>
+                {items.length}
+              </span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    ) : null;
+
   return (
     <article
       id={materialAnchorId(block.material)}
@@ -183,20 +273,26 @@ function MaterialCatalogSection({
       aria-labelledby={`catalog-${materialAnchorId(block.material)}`}
     >
       <header className={styles.materialCatalogHead}>
+        <CatalogBrand
+          compact
+          title={storeTitle}
+          tagline={`Catálogo · ${block.material}`}
+        />
         <h2
           id={`catalog-${materialAnchorId(block.material)}`}
           className={styles.materialCatalogTitle}
         >
-          Catálogo · {block.material}
+          {block.material}
         </h2>
         <p className={styles.materialCatalogMeta}>
           {block.itemCount} pieza{block.itemCount === 1 ? "" : "s"} ·{" "}
           {block.categories.length} categoría
           {block.categories.length === 1 ? "" : "s"}
         </p>
+        {categoryNav}
       </header>
 
-      {block.categories.map(({ category, items }) => (
+      {visibleCategories.map(({ category, items }) => (
         <section
           key={category}
           id={categoryAnchorId(block.material, category)}
@@ -267,6 +363,15 @@ export function PublicCatalogPage({ showPrices }: Props) {
   useEffect(() => {
     void load(false);
   }, [load]);
+
+  useEffect(() => {
+    if (!data?.title) return;
+    const suffix = showPrices ? " · Con precios" : " · Catálogo";
+    document.title = `${data.title}${suffix}`;
+    return () => {
+      document.title = "Joyería App";
+    };
+  }, [data?.title, showPrices]);
 
   useEffect(() => {
     const timer = window.setInterval(() => void load(true), AUTO_REFRESH_MS);
@@ -426,7 +531,14 @@ export function PublicCatalogPage({ showPrices }: Props) {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.brand}>{data.title}</h1>
+        <CatalogBrand
+          title={data.title}
+          tagline={
+            showPrices
+              ? "García · Vitrina con precios"
+              : "García · Vitrina · consulta en tienda"
+          }
+        />
         <p className={styles.sub}>
           {singleMaterial
             ? `Catálogo ${materialCatalogs[0]!.material}${showPrices ? " · con precios" : " · sin precios"}`
@@ -499,6 +611,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
             <MaterialCatalogSection
               key={block.materialSlug}
               block={block}
+              storeTitle={data.title}
               showPrices={showPrices}
               onZoom={openZoom}
             />
@@ -507,7 +620,11 @@ export function PublicCatalogPage({ showPrices }: Props) {
       </main>
 
       <footer className={styles.footer}>
-        Se actualiza solo cada 30 s · Joyerías García
+        <CatalogBrand
+          compact
+          title={data.title}
+          tagline="Se actualiza cada 30 s"
+        />
       </footer>
 
       <ImageLightbox

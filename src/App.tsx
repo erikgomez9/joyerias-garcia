@@ -8,6 +8,7 @@ import { ClientsPage } from "./pages/ClientsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { SalesPage } from "./pages/SalesPage";
 import { SalesReportPage } from "./pages/SalesReportPage";
+import { CommissionsPage } from "./pages/CommissionsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DamagesPage } from "./pages/DamagesPage";
 import { WarrantyPage } from "./pages/WarrantyPage";
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="clientes" element={<ClientsPage />} />
         <Route path="pedidos" element={<OrdersPage />} />
         <Route path="ventas" element={<SalesPage />} />
+        <Route path="comisiones" element={<CommissionsPage />} />
         <Route path="danos" element={<DamagesPage />} />
         <Route path="garantias" element={<WarrantyPage />} />
         <Route path="ajustes" element={<SettingsPage />} />

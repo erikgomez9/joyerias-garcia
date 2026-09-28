@@ -1124,6 +1124,29 @@
   flex: 2;
 }
 
+.paySellerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.paySellerChip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.paySellerChipActive {
+  border-color: var(--gold-dim);
+  background: rgba(212, 175, 87, 0.15);
+  color: var(--gold);
+  font-weight: 600;
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;

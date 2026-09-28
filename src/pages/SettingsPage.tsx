@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { usePos } from "@/context/PosContext";
 import { apiBaseForDiagnostics, catalogWebApi } from "@/lib/api";
 import { buildMaterialCatalogs } from "@/lib/webCatalogGrouping";
@@ -9,7 +10,17 @@ import ui from "@/components/ui.module.css";
 import styles from "./Pages.module.css";
 
 export function SettingsPage() {
-  const { inventorySource, inventoryError, refreshInventory } = usePos();
+  const {
+    inventorySource,
+    inventoryError,
+    refreshInventory,
+    sellers,
+    createSeller,
+    updateSeller,
+  } = usePos();
+  const [newSellerName, setNewSellerName] = useState("");
+  const [sellerBusy, setSellerBusy] = useState(false);
+  const [sellerMsg, setSellerMsg] = useState("");
   const [catalog, setCatalog] = useState<CatalogWebSettings | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [catalogBusy, setCatalogBusy] = useState(false);
@@ -102,6 +113,41 @@ export function SettingsPage() {
       );
     } finally {
       setCatalogBusy(false);
+    }
+  }
+
+  async function addSeller() {
+    const name = newSellerName.trim();
+    if (!name) return;
+    setSellerBusy(true);
+    setSellerMsg("");
+    try {
+      await createSeller(name);
+      setNewSellerName("");
+      setSellerMsg(`${name} agregada.`);
+      window.setTimeout(() => setSellerMsg(""), 2500);
+    } catch (err) {
+      setSellerMsg(
+        err instanceof Error ? err.message : "No se pudo agregar."
+      );
+    } finally {
+      setSellerBusy(false);
+    }
+  }
+
+  async function toggleSellerActive(id: string, active: boolean) {
+    setSellerBusy(true);
+    setSellerMsg("");
+    try {
+      await updateSeller(id, { active });
+      setSellerMsg(active ? "Vendedora activada." : "Vendedora desactivada.");
+      window.setTimeout(() => setSellerMsg(""), 2500);
+    } catch (err) {
+      setSellerMsg(
+        err instanceof Error ? err.message : "No se pudo actualizar."
+      );
+    } finally {
+      setSellerBusy(false);
     }
   }
 
@@ -301,6 +347,84 @@ export function SettingsPage() {
         ) : (
           <p style={{ color: "var(--text-muted)" }}>Cargando enlaces…</p>
         )}
+      </div>
+
+      <div className={ui.card} style={{ maxWidth: 560, marginBottom: "1rem" }}>
+        <h2 className={styles.sectionTitle} style={{ marginTop: 0 }}>
+          Vendedoras (comisiones)
+        </h2>
+        <p style={{ margin: "0 0 0.75rem", color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.5 }}>
+          Al cobrar en el POS cada chava elige su nombre. Comisión{" "}
+          <strong>1% del total</strong> de cada venta; revisa el corte en{" "}
+          <Link to="/comisiones">Comisiones</Link>.
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+          <input
+            className={ui.input}
+            placeholder="Nombre de la vendedora"
+            value={newSellerName}
+            disabled={sellerBusy}
+            onChange={(e) => setNewSellerName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void addSeller();
+            }}
+          />
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.btnPrimary}`}
+            disabled={sellerBusy || !newSellerName.trim()}
+            onClick={() => void addSeller()}
+          >
+            Agregar
+          </button>
+        </div>
+        {sellers.length === 0 ? (
+          <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.88rem" }}>
+            Sin vendedoras registradas. Mientras tanto el POS no pedirá nombre.
+          </p>
+        ) : (
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.4rem",
+            }}
+          >
+            {sellers.map((s) => (
+              <li
+                key={s.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "0.5rem",
+                  padding: "0.4rem 0",
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <span style={{ opacity: s.active ? 1 : 0.5 }}>{s.name}</span>
+                <button
+                  type="button"
+                  className={ui.btn}
+                  disabled={sellerBusy}
+                  onClick={() =>
+                    void toggleSellerActive(s.id, !s.active)
+                  }
+                >
+                  {s.active ? "Desactivar" : "Activar"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {sellerMsg ? (
+          <p style={{ margin: "0.75rem 0 0", color: "var(--gold)", fontSize: "0.85rem" }}>
+            {sellerMsg}
+          </p>
+        ) : null}
       </div>
 
       <div className={ui.card} style={{ maxWidth: 560, marginBottom: "1rem" }}>

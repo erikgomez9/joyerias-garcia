@@ -429,6 +429,10 @@ export function SalesPage() {
                                     </span>
                                     <span className={styles.saleDetailPos}>
                                       Punto de venta
+                                      {s.seller &&
+                                      s.seller !== "Mostrador"
+                                        ? ` · ${s.seller}`
+                                        : ""}
                                     </span>
                                   </>
                                 )}

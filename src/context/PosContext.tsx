@@ -17,6 +17,7 @@ import {
   ordersApi,
   productsApi,
   salesApi,
+  sellersApi,
 } from "@/lib/api";
 import { generateSku, uid } from "@/lib/inventoryCodes";
 import { applyInventoryModeRules } from "@/lib/inventoryMode";
@@ -39,9 +40,11 @@ import type {
   ProductInput,
   SaleRecord,
 } from "@/types";
+import type { SellerRecord } from "@/types/seller";
 
 const STORAGE_KEY = "jg-inventory-v2";
 const SALES_STORAGE_KEY = "jg-sales-v1";
+const SELLERS_STORAGE_KEY = "jg-sellers-v1";
 
 export type InventorySource = "loading" | "mongo" | "local";
 
@@ -61,6 +64,21 @@ function normalizeProduct(raw: LegacyProduct): Product {
     priceMenudeo,
     inventoryMode: "catalog" as const,
   };
+}
+
+function loadLocalSellers(): SellerRecord[] {
+  try {
+    const raw = localStorage.getItem(SELLERS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as SellerRecord[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalSellers(list: SellerRecord[]) {
+  localStorage.setItem(SELLERS_STORAGE_KEY, JSON.stringify(list));
 }
 
 function loadLocalSales(): SaleRecord[] {
@@ -98,6 +116,7 @@ interface PosState {
   sales: SaleRecord[];
   clients: Client[];
   orders: OrderRecord[];
+  sellers: SellerRecord[];
   inventorySource: InventorySource;
   inventoryError: string | null;
   refreshInventory: () => Promise<void>;
@@ -109,8 +128,15 @@ interface PosState {
   clearCart: () => void;
   checkout: (
     payment: SaleRecord["payment"],
-    paymentMix?: PaymentMix
+    paymentMix: PaymentMix | undefined,
+    sellerName: string
   ) => Promise<SaleRecord>;
+  refreshSellers: () => Promise<void>;
+  createSeller: (name: string) => Promise<SellerRecord>;
+  updateSeller: (
+    id: string,
+    patch: Partial<Pick<SellerRecord, "name" | "active">>
+  ) => Promise<SellerRecord>;
   createProduct: (input: ProductInput) => Promise<Product>;
   updateProduct: (id: string, patch: Partial<ProductInput>) => Promise<void>;
   adjustStock: (id: string, delta: number) => Promise<void>;
@@ -198,6 +224,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   productsRef.current = products;
   const [clients, setClients] = useState<Client[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [sellers, setSellers] = useState<SellerRecord[]>([]);
   const [inventorySource, setInventorySource] =
     useState<InventorySource>("loading");
   const [inventoryError, setInventoryError] = useState<string | null>(null);
@@ -208,16 +235,19 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const mongoUp = await isMongoApiAvailable();
     if (mongoUp) {
       try {
-        const [list, salesList, clientList, orderList] = await Promise.all([
+        const [list, salesList, clientList, orderList, sellerList] =
+          await Promise.all([
           productsApi.list(),
           salesApi.list(),
           clientsApi.list(),
           ordersApi.list(),
+          sellersApi.list(),
         ]);
         setProducts(list);
         setSales(salesList);
         setClients(clientList);
         setOrders(orderList);
+        setSellers(sellerList);
         setUseMongo(true);
         setInventorySource("mongo");
         return;
@@ -234,6 +264,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setInventorySource("local");
     setProducts(loadLocalProducts());
     setSales(loadLocalSales());
+    setSellers(loadLocalSellers());
     setClients([]);
     setOrders([]);
     if (!mongoUp) {
@@ -260,6 +291,78 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (inventorySource !== "local") return;
     localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify(sales));
   }, [sales, inventorySource]);
+
+  useEffect(() => {
+    if (inventorySource !== "local") return;
+    saveLocalSellers(sellers);
+  }, [sellers, inventorySource]);
+
+  const refreshSellers = useCallback(async () => {
+    if (useMongo) {
+      const list = await sellersApi.list();
+      setSellers(list);
+      return;
+    }
+    setSellers(loadLocalSellers());
+  }, [useMongo]);
+
+  const createSeller = useCallback(
+    async (name: string): Promise<SellerRecord> => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error("Escribe el nombre de la vendedora.");
+      if (useMongo) {
+        const created = await sellersApi.create(trimmed);
+        setSellers((prev) =>
+          [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "es"))
+        );
+        return created;
+      }
+      const now = new Date().toISOString();
+      const created: SellerRecord = {
+        id: uid(),
+        name: trimmed,
+        active: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      setSellers((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name, "es"))
+      );
+      return created;
+    },
+    [useMongo]
+  );
+
+  const updateSeller = useCallback(
+    async (
+      id: string,
+      patch: Partial<Pick<SellerRecord, "name" | "active">>
+    ): Promise<SellerRecord> => {
+      if (useMongo) {
+        const updated = await sellersApi.update(id, patch);
+        setSellers((prev) =>
+          prev.map((s) => (s.id === id ? updated : s))
+        );
+        return updated;
+      }
+      let updated!: SellerRecord;
+      setSellers((prev) =>
+        prev.map((s) => {
+          if (s.id !== id) return s;
+          updated = {
+            ...s,
+            ...patch,
+            name: patch.name !== undefined ? patch.name.trim() : s.name,
+            updatedAt: new Date().toISOString(),
+          };
+          return updated;
+        })
+      );
+      if (!updated) throw new Error("Vendedora no encontrada.");
+      return updated;
+    },
+    [useMongo]
+  );
 
   const createProduct = useCallback(
     async (input: ProductInput): Promise<Product> => {
@@ -574,9 +677,22 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const checkout = useCallback(
     async (
       payment: SaleRecord["payment"],
-      paymentMix?: PaymentMix
+      paymentMix: PaymentMix | undefined,
+      sellerName: string
     ): Promise<SaleRecord> => {
       const current = cart;
+      const active = sellers.filter((s) => s.active);
+      const sellerTrim = sellerName.trim();
+      if (active.length > 0) {
+        const ok = active.some(
+          (s) => s.name.trim().toLowerCase() === sellerTrim.toLowerCase()
+        );
+        if (!ok) {
+          throw new Error("Elige quién hizo la venta antes de cobrar.");
+        }
+      }
+      const seller =
+        sellerTrim || (active.length === 0 ? "Mostrador" : sellerTrim);
       if (current.length === 0) {
         throw new Error("El ticket está vacío.");
       }
@@ -606,6 +722,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         const sale = await salesApi.checkout({
           payment,
           paymentMix: mix,
+          seller,
           priceTier: tier,
           items: current.map((l) => ({
             productId: l.product.id,
@@ -636,7 +753,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         })),
         payment,
         paymentMix: mix,
-        seller: "Mostrador",
+        seller,
       };
 
       for (const line of current) {
@@ -663,7 +780,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       setCart([]);
       return sale;
     },
-    [cart, useMongo]
+    [cart, useMongo, sellers]
   );
 
   const value = useMemo(
@@ -673,6 +790,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       sales,
       clients,
       orders,
+      sellers,
       inventorySource,
       inventoryError,
       refreshInventory,
@@ -683,6 +801,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
       removeLine,
       clearCart,
       checkout,
+      refreshSellers,
+      createSeller,
+      updateSeller,
       createProduct,
       updateProduct,
       adjustStock,
@@ -701,6 +822,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       sales,
       clients,
       orders,
+      sellers,
       inventorySource,
       inventoryError,
       refreshInventory,
@@ -711,6 +833,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
       removeLine,
       clearCart,
       checkout,
+      refreshSellers,
+      createSeller,
+      updateSeller,
       createProduct,
       updateProduct,
       adjustStock,

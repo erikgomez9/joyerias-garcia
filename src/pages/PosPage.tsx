@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { PosCheckoutReview } from "@/components/PosCheckoutReview";
 import { PosProductConfirm } from "@/components/PosProductConfirm";
@@ -37,7 +38,13 @@ export function PosPage() {
     clearCart,
     checkout,
     refreshProductsQuiet,
+    sellers,
   } = usePos();
+
+  const activeSellers = useMemo(
+    () => sellers.filter((s) => s.active),
+    [sellers]
+  );
 
   useEffect(() => {
     void refreshProductsQuiet();
@@ -347,12 +354,13 @@ export function PosPage() {
           total={total}
           busy={checkingOut}
           error={checkoutError}
+          sellers={activeSellers}
           onClose={() => !checkingOut && setPayOpen(false)}
-          onConfirm={async (method, paymentMix) => {
+          onConfirm={async (sellerName, method, paymentMix) => {
             setCheckingOut(true);
             setCheckoutError("");
             try {
-              const sale = await checkout(method, paymentMix);
+              const sale = await checkout(method, paymentMix, sellerName);
               setPayOpen(false);
               setLastSale(sale);
             } catch (err) {
@@ -373,22 +381,54 @@ export function PosPage() {
   );
 }
 
+const LAST_SELLER_KEY = "jg-last-seller";
+
 function PaymentModal({
   total,
   busy,
   error,
+  sellers,
   onClose,
   onConfirm,
 }: {
   total: number;
   busy: boolean;
   error: string;
+  sellers: { id: string; name: string }[];
   onClose: () => void;
   onConfirm: (
+    sellerName: string,
     m: SalePaymentMethod,
     mix?: PaymentMix
   ) => void | Promise<void>;
 }) {
+  const [selectedSeller, setSelectedSeller] = useState(() => {
+    const last = sessionStorage.getItem(LAST_SELLER_KEY) ?? "";
+    if (last && sellers.some((s) => s.name === last)) return last;
+    return sellers.length === 1 ? sellers[0]!.name : "";
+  });
+  const [sellerError, setSellerError] = useState("");
+
+  function pickSeller(name: string) {
+    setSelectedSeller(name);
+    sessionStorage.setItem(LAST_SELLER_KEY, name);
+    setSellerError("");
+  }
+
+  function requireSeller(): string | null {
+    if (sellers.length === 0) return "";
+    if (!selectedSeller.trim()) {
+      setSellerError("Toca el nombre de quien hizo la venta.");
+      return null;
+    }
+    return selectedSeller.trim();
+  }
+
+  function pay(m: SalePaymentMethod, mix?: PaymentMix) {
+    const seller = requireSeller();
+    if (seller === null) return;
+    void onConfirm(seller, m, mix);
+  }
   const simpleMethods: SalePaymentMethod[] = [
     "efectivo",
     "tarjeta",
@@ -421,7 +461,7 @@ function PaymentModal({
       return;
     }
     setMixError("");
-    void onConfirm("mixto", mix);
+    pay("mixto", mix);
   }
 
   return (
@@ -439,6 +479,52 @@ function PaymentModal({
         <p className={ui.pageDesc} style={{ marginBottom: "1rem" }}>
           Total a cobrar: <strong>{formatMoney(total)}</strong>
         </p>
+
+        {sellers.length > 0 ? (
+          <div style={{ marginBottom: "1rem" }}>
+            <div
+              className={styles.catalogFiltersLabel}
+              style={{ marginBottom: "0.45rem" }}
+            >
+              ¿Quién hizo la venta?
+            </div>
+            <div className={styles.paySellerChips}>
+              {sellers.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`${styles.paySellerChip} ${
+                    selectedSeller === s.name ? styles.paySellerChipActive : ""
+                  }`}
+                  disabled={busy}
+                  onClick={() => pickSeller(s.name)}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            {sellerError ? (
+              <p style={{ color: "var(--danger)", fontSize: "0.85rem", margin: "0.35rem 0 0" }}>
+                {sellerError}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <p
+            style={{
+              margin: "0 0 1rem",
+              fontSize: "0.85rem",
+              color: "var(--text-muted)",
+            }}
+          >
+            Agrega vendedoras en{" "}
+            <Link to="/ajustes" onClick={onClose}>
+              Ajustes
+            </Link>{" "}
+            para comisiones del 1%.
+          </p>
+        )}
+
         {error && (
           <p style={{ color: "var(--danger)", fontSize: "0.9rem" }}>{error}</p>
         )}
@@ -454,7 +540,7 @@ function PaymentModal({
                   type="button"
                   className={ui.btn}
                   disabled={busy}
-                  onClick={() => void onConfirm(m)}
+                  onClick={() => pay(m)}
                 >
                   {busy ? "Procesando…" : m.charAt(0).toUpperCase() + m.slice(1)}
                 </button>

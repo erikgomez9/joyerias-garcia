@@ -6,6 +6,7 @@ import { priceTierForSaleLines } from "../lib/salePricing.js";
 import { touchWebCatalogOnStockChange } from "../lib/webCatalog.js";
 import { ProductModel } from "../models/Product.js";
 import { SaleModel, docToSale } from "../models/Sale.js";
+import { SellerModel } from "../models/Seller.js";
 
 export const salesRouter = Router();
 
@@ -91,13 +92,28 @@ salesRouter.post("/checkout", async (req, res, next) => {
 
       const priceTier = priceTierForSaleLines(lineItems, productById);
 
+      const sellerName = body.seller?.trim() || "";
+      const activeSellers = await SellerModel.find({ active: true })
+        .select("name")
+        .lean();
+      if (activeSellers.length > 0) {
+        const allowed = new Set(
+          activeSellers.map((s) => s.name.trim().toLowerCase())
+        );
+        if (!sellerName || !allowed.has(sellerName.toLowerCase())) {
+          throw new Error("Elige quién hizo la venta antes de cobrar.");
+        }
+      }
+      const seller =
+        sellerName || (activeSellers.length === 0 ? "Mostrador" : sellerName);
+
       const created = await SaleModel.create(
         [
           {
             total,
             payment,
             paymentMix,
-            seller: body.seller?.trim() || "Mostrador",
+            seller,
             items: lineItems,
             priceTier,
           },

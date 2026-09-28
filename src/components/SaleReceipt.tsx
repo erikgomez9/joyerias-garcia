@@ -55,6 +55,9 @@ export function SaleReceipt({ sale, onClose }: Props) {
               ? formatPaymentMix(sale.paymentMix)
               : sale.payment}
           </div>
+          {sale.seller && sale.seller !== "Mostrador" ? (
+            <div className={styles.meta}>Vendedora: {sale.seller}</div>
+          ) : null}
           {tier ? (
             <div className={styles.meta}>
               Venta: <strong>{priceTierLabel(tier)}</strong>

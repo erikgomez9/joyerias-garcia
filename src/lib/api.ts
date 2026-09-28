@@ -12,8 +12,11 @@ import type {
   SaleRecord,
 } from "@/types";
 import type { DamageRecord, WarrantyCaseRecord, WarrantyType } from "@/types";
+import type { CommissionReport } from "@/types/commissions";
 import type { DayCloseRecord } from "@/types/dayClose";
 import type { LiveSalesReport } from "@/types/reports";
+import type { SellerRecord } from "@/types/seller";
+import type { QuincenaFilter } from "@/lib/quincena";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
 
@@ -251,6 +254,36 @@ export const reportsApi = {
       method: "POST",
       body: JSON.stringify(dayKey ? { dayKey } : {}),
     });
+  },
+};
+
+export const sellersApi = {
+  list(): Promise<SellerRecord[]> {
+    return request<SellerRecord[]>("/sellers");
+  },
+
+  create(name: string): Promise<SellerRecord> {
+    return request<SellerRecord>("/sellers", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  update(
+    id: string,
+    patch: Partial<Pick<SellerRecord, "name" | "active">>
+  ): Promise<SellerRecord> {
+    return request<SellerRecord>(`/sellers/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    });
+  },
+};
+
+export const commissionsApi = {
+  report(quincena: QuincenaFilter | string = "current"): Promise<CommissionReport> {
+    const q = new URLSearchParams({ quincena });
+    return request<CommissionReport>(`/commissions/report?${q}`);
   },
 };
 

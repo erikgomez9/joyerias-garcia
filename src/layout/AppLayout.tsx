@@ -9,6 +9,7 @@ const nav = [
   { to: "/pedidos", label: "Pedidos", icon: "▷" },
   { to: "/clientes", label: "Clientes", icon: "◎" },
   { to: "/ventas", label: "Ventas", icon: "▤" },
+  { to: "/comisiones", label: "Comisiones", icon: "％" },
   { to: "/garantias", label: "Garantías", icon: "↺" },
   { to: "/danos", label: "Daños", icon: "✕" },
   { to: "/reportes", label: "Reportes", icon: "◈" },

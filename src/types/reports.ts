@@ -10,6 +10,7 @@ export type LiveSalesReport = {
     pieces: number;
   };
   byPayment: { label: string; amount: number }[];
+  byPriceTier?: { label: string; amount: number }[];
   starProducts: {
     sku: string;
     name: string;

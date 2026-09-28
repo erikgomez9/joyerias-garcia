@@ -1,6 +1,8 @@
 import { SALES_PERIOD_LABELS, type SalesPeriod } from "@/lib/saleDateFilter";
 import { formatDate } from "@/lib/format";
+import type { DayCloseRecord } from "@/types/dayClose";
 import type { LiveSalesReport } from "@/types/reports";
+import { formatDayKeyLabel } from "@/lib/saleDateFilter";
 
 function escapeCsv(value: string | number | undefined): string {
   const s = value === undefined || value === null ? "" : String(value);
@@ -39,6 +41,16 @@ export function liveReportToCsv(
         [],
         ["Formas de pago", "Monto"],
         ...report.byPayment.map((p) => [p.label, p.amount]),
+      ])
+    );
+  }
+
+  if (report.byPriceTier?.length) {
+    sections.push(
+      rowsToCsv([
+        [],
+        ["Mayoreo / menudeo", "Monto"],
+        ...report.byPriceTier.map((p) => [p.label, p.amount]),
       ])
     );
   }
@@ -91,6 +103,42 @@ export function liveReportToCsv(
   }
 
   return sections.join("\n");
+}
+
+export function dayCloseToCsv(record: DayCloseRecord): string {
+  return rowsToCsv([
+    ["Cierre de día — Joyerías García"],
+    ["Día", formatDayKeyLabel(record.dayKey)],
+    ["Cerrado", formatDate(record.closedAt)],
+    [],
+    ["Tickets", record.summary.tickets],
+    ["Total vendido", record.summary.total],
+    ["Ticket promedio", record.summary.avgTicket.toFixed(2)],
+    ["Piezas vendidas", record.summary.pieces],
+    [],
+    ["Formas de pago", "Monto"],
+    ...record.byPayment.map((p) => [p.label, p.amount]),
+    ...(record.byPriceTier.length
+      ? [
+          [],
+          ["Mayoreo / menudeo", "Monto"],
+          ...record.byPriceTier.map((p) => [p.label, p.amount]),
+        ]
+      : []),
+  ]);
+}
+
+export function downloadDayCloseCsv(record: DayCloseRecord): void {
+  const csv = dayCloseToCsv(record);
+  const blob = new Blob(["\uFEFF" + csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `cierre-dia-${record.dayKey}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function downloadLiveReportCsv(

@@ -45,3 +45,23 @@ export const SALES_PERIOD_LABELS: Record<SalesPeriod, string> = {
   month: "Este mes",
   all: "Todo el historial",
 };
+
+export function localDayKey(now = new Date()): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function formatDayKeyLabel(dayKey: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey.trim());
+  if (!m) return dayKey;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (Number.isNaN(d.getTime())) return dayKey;
+  return d.toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}

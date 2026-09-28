@@ -12,6 +12,7 @@ import type {
   SaleRecord,
 } from "@/types";
 import type { DamageRecord, WarrantyCaseRecord, WarrantyType } from "@/types";
+import type { DayCloseRecord } from "@/types/dayClose";
 import type { LiveSalesReport } from "@/types/reports";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
@@ -235,9 +236,21 @@ export const damagesApi = {
 };
 
 export const reportsApi = {
-  live(period: SalesPeriod = "month"): Promise<LiveSalesReport> {
+  live(period: SalesPeriod = "today"): Promise<LiveSalesReport> {
     const q = new URLSearchParams({ period });
     return request<LiveSalesReport>(`/reports/live?${q}`);
+  },
+
+  listDayCloses(limit = 30): Promise<DayCloseRecord[]> {
+    const q = new URLSearchParams({ limit: String(limit) });
+    return request(`/reports/day-closes?${q}`);
+  },
+
+  closeDay(dayKey?: string): Promise<DayCloseRecord> {
+    return request("/reports/day-close", {
+      method: "POST",
+      body: JSON.stringify(dayKey ? { dayKey } : {}),
+    });
   },
 };
 

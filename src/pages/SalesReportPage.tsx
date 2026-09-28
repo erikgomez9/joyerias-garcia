@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { isMongoApiAvailable, reportsApi } from "@/lib/api";
-import { downloadLiveReportCsv } from "@/lib/exportSalesReport";
+import {
+  downloadDayCloseCsv,
+  downloadLiveReportCsv,
+} from "@/lib/exportSalesReport";
 import { formatDate, formatMoney } from "@/lib/format";
 import {
+  formatDayKeyLabel,
+  localDayKey,
   SALES_PERIOD_LABELS,
   type SalesPeriod,
 } from "@/lib/saleDateFilter";
 import { StockBadge } from "@/components/StockBadge";
+import type { DayCloseRecord } from "@/types/dayClose";
 import type { LiveSalesReport } from "@/types/reports";
 import ui from "@/components/ui.module.css";
 import styles from "./SalesReportPage.module.css";
@@ -15,12 +21,32 @@ const PERIODS: SalesPeriod[] = ["today", "week", "month", "all"];
 const REFRESH_MS = 12_000;
 
 export function SalesReportPage() {
-  const [period, setPeriod] = useState<SalesPeriod>("month");
+  const [period, setPeriod] = useState<SalesPeriod>("today");
   const [report, setReport] = useState<LiveSalesReport | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(true);
   const [mongo, setMongo] = useState<boolean | null>(null);
+  const [dayCloses, setDayCloses] = useState<DayCloseRecord[]>([]);
+  const [closeBusy, setCloseBusy] = useState(false);
+  const [closeMsg, setCloseMsg] = useState("");
+
+  const todayKey = localDayKey();
+  const todayClose = dayCloses.find((c) => c.dayKey === todayKey) ?? null;
+
+  const loadDayCloses = useCallback(async () => {
+    try {
+      const ok = await isMongoApiAvailable();
+      if (!ok) {
+        setDayCloses([]);
+        return;
+      }
+      const list = await reportsApi.listDayCloses(45);
+      setDayCloses(list);
+    } catch {
+      setDayCloses([]);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -51,6 +77,36 @@ export function SalesReportPage() {
     const id = window.setInterval(() => void load(), REFRESH_MS);
     return () => window.clearInterval(id);
   }, [live, mongo, load]);
+
+  useEffect(() => {
+    void loadDayCloses();
+  }, [loadDayCloses]);
+
+  async function handleCloseDay() {
+    setCloseBusy(true);
+    setCloseMsg("");
+    try {
+      const saved = await reportsApi.closeDay();
+      setDayCloses((prev) => {
+        const rest = prev.filter((c) => c.dayKey !== saved.dayKey);
+        return [saved, ...rest].sort((a, b) =>
+          b.dayKey.localeCompare(a.dayKey)
+        );
+      });
+      setCloseMsg(
+        saved.dayKey === todayKey
+          ? "Cierre de hoy guardado. Las ventas siguen en el historial."
+          : "Cierre guardado."
+      );
+      window.setTimeout(() => setCloseMsg(""), 4000);
+    } catch (err) {
+      setCloseMsg(
+        err instanceof Error ? err.message : "No se pudo guardar el cierre."
+      );
+    } finally {
+      setCloseBusy(false);
+    }
+  }
 
   const maxStar =
     report?.starProducts[0]?.revenue ?? 1;
@@ -149,7 +205,113 @@ export function SalesReportPage() {
             </div>
           </div>
 
+          <section className={`${styles.panel} ${styles.dayClosePanel}`}>
+            <h2 className={styles.panelTitle}>Cierre del día</h2>
+            <p className={styles.panelDesc}>
+              Guarda un resumen fijo del día (totales y formas de pago) sin borrar
+              ventas. Puedes volver a cerrar hoy si entra una venta después.
+            </p>
+            <div className={styles.dayCloseActions}>
+              <button
+                type="button"
+                className={`${ui.btn} ${ui.btnPrimary}`}
+                disabled={closeBusy || mongo === false}
+                onClick={() => void handleCloseDay()}
+              >
+                {closeBusy
+                  ? "Guardando…"
+                  : todayClose
+                    ? "Actualizar cierre de hoy"
+                    : "Cerrar día de hoy"}
+              </button>
+              {todayClose ? (
+                <button
+                  type="button"
+                  className={ui.btn}
+                  onClick={() => downloadDayCloseCsv(todayClose)}
+                >
+                  CSV cierre de hoy
+                </button>
+              ) : null}
+            </div>
+            {todayClose ? (
+              <p className={styles.dayCloseSaved}>
+                Último cierre de hoy:{" "}
+                <time dateTime={todayClose.closedAt}>
+                  {formatDate(todayClose.closedAt)}
+                </time>
+                {" · "}
+                {formatMoney(todayClose.summary.total)} ·{" "}
+                {todayClose.summary.tickets} ticket
+                {todayClose.summary.tickets === 1 ? "" : "s"}
+              </p>
+            ) : null}
+            {closeMsg ? (
+              <p className={styles.dayCloseMsg} role="status">
+                {closeMsg}
+              </p>
+            ) : null}
+            {dayCloses.length > 0 ? (
+              <div className={styles.dayCloseHistory}>
+                <h3 className={styles.dayCloseHistoryTitle}>Cierres guardados</h3>
+                <ul className={styles.dayCloseList}>
+                  {dayCloses.slice(0, 14).map((c) => (
+                    <li key={c.id} className={styles.dayCloseRow}>
+                      <div>
+                        <span className={styles.dayCloseDate}>
+                          {formatDayKeyLabel(c.dayKey)}
+                        </span>
+                        <span className={styles.dayCloseMeta}>
+                          {c.summary.tickets} tickets ·{" "}
+                          {formatMoney(c.summary.total)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${ui.btn} ${ui.btnGhost}`}
+                        onClick={() => downloadDayCloseCsv(c)}
+                      >
+                        CSV
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </section>
+
           <div className={styles.grid}>
+            {(report.byPayment.length > 0 ||
+              (report.byPriceTier?.length ?? 0) > 0) && (
+              <section className={styles.panel}>
+                <h2 className={styles.panelTitle}>Ingresos del periodo</h2>
+                <p className={styles.panelDesc}>
+                  Desglose por forma de pago
+                  {report.byPriceTier?.length ? " y tipo de precio" : ""}.
+                </p>
+                {report.byPayment.length > 0 ? (
+                  <ul className={styles.payList}>
+                    {report.byPayment.map((p) => (
+                      <li key={p.label} className={styles.payRow}>
+                        <span>{p.label}</span>
+                        <strong>{formatMoney(p.amount)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {report.byPriceTier?.length ? (
+                  <ul className={styles.payList}>
+                    {report.byPriceTier.map((p) => (
+                      <li key={p.label} className={styles.payRow}>
+                        <span>{p.label}</span>
+                        <strong>{formatMoney(p.amount)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            )}
+
             <section className={styles.panel}>
               <h2 className={styles.panelTitle}>Productos estrella</h2>
               <p className={styles.panelDesc}>

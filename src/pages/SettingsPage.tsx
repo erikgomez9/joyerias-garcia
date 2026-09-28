@@ -71,10 +71,23 @@ export function SettingsPage() {
     );
   }
 
-  async function copyMaterialLink(materialSlug: string, label: string) {
+  async function copyMaterialLink(
+    materialSlug: string,
+    label: string,
+    withPrices: boolean
+  ) {
     if (!catalog) return;
-    const url = publicCatalogAbsoluteUrl(catalog.slug, true, materialSlug);
-    await copyText(url, `Catálogo ${label} copiado.`);
+    const url = publicCatalogAbsoluteUrl(
+      catalog.slug,
+      withPrices,
+      materialSlug
+    );
+    await copyText(
+      url,
+      withPrices
+        ? `Catálogo ${label} (con precios) copiado.`
+        : `Catálogo ${label} (sin precios) copiado.`
+    );
   }
 
   async function saveCatalogTitle(title: string) {
@@ -211,7 +224,9 @@ export function SettingsPage() {
                       <button
                         type="button"
                         className={ui.btn}
-                        onClick={() => void copyMaterialLink(m.slug, m.label)}
+                        onClick={() =>
+                          void copyMaterialLink(m.slug, m.label, true)
+                        }
                       >
                         Copiar · {m.label}
                       </button>
@@ -243,6 +258,37 @@ export function SettingsPage() {
                 Copiar enlace sin precios
               </button>
             </div>
+            {materialLinks.length > 0 ? (
+              <div style={{ marginBottom: "0.75rem" }}>
+                <div className={styles.catalogFiltersLabel}>
+                  Catálogo sin precios por material
+                </div>
+                <ul
+                  style={{
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.45rem",
+                  }}
+                >
+                  {materialLinks.map((m) => (
+                    <li key={`np-${m.slug}`}>
+                      <button
+                        type="button"
+                        className={ui.btn}
+                        onClick={() =>
+                          void copyMaterialLink(m.slug, m.label, false)
+                        }
+                      >
+                        Copiar sin precios · {m.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {copyMsg ? (
               <p style={{ margin: 0, color: "var(--gold)", fontSize: "0.85rem" }}>
                 {copyMsg}

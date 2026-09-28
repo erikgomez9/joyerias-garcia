@@ -41,6 +41,99 @@
   gap: 0.5rem;
 }
 
+.dayClosePanel {
+  border-color: var(--gold-dim);
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 87, 0.06) 0%,
+    var(--bg-panel) 55%
+  );
+}
+
+.dayCloseActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dayCloseSaved {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.dayCloseMsg {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--gold);
+}
+
+.dayCloseHistory {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.dayCloseHistoryTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dayCloseList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dayCloseRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dayCloseDate {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.dayCloseMeta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.payList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.payRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+
+.payRow strong {
+  color: var(--gold);
+  font-weight: 600;
+}
+
 .liveToggle {
   display: flex;
   align-items: center;

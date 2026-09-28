@@ -1,10 +1,32 @@
 import { ProductModel, docToProduct } from "../models/Product.js";
 import { SaleModel } from "../models/Sale.js";
 
-function startOfDay(d) {
+export function startOfDay(d) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
+}
+
+export function startOfNextDay(d) {
+  const x = startOfDay(d);
+  x.setDate(x.getDate() + 1);
+  return x;
+}
+
+export function dayKeyFromDate(d = new Date()) {
+  const x = startOfDay(d);
+  const y = x.getFullYear();
+  const m = String(x.getMonth() + 1).padStart(2, "0");
+  const day = String(x.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function dayBoundsFromKey(dayKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dayKey).trim());
+  if (!m) return null;
+  const from = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
+  if (Number.isNaN(from.getTime())) return null;
+  return { from, to: startOfNextDay(from) };
 }
 
 function startOfWeekMonday(d) {
@@ -33,7 +55,57 @@ const VALID_PERIODS = ["today", "week", "month", "all"];
 
 export function normalizeReportPeriod(raw) {
   if (VALID_PERIODS.includes(raw)) return raw;
-  return "month";
+  return "today";
+}
+
+/** Resumen de tickets en un rango [from, to) por createdAt. */
+export function summarizeSaleDocs(saleDocs) {
+  let total = 0;
+  let pieces = 0;
+  const byPayment = new Map();
+  const tierTotals = { mayoreo: 0, menudeo: 0, sin_tier: 0 };
+
+  for (const doc of saleDocs) {
+    const amount = saleNetAmount(doc);
+    total += amount;
+    const countPieces = doc.kind !== "warranty";
+    if (countPieces) {
+      for (const item of doc.items ?? []) {
+        pieces += item.qty ?? 0;
+      }
+    }
+    const label = paymentLabel(doc);
+    byPayment.set(label, (byPayment.get(label) ?? 0) + amount);
+
+    if (doc.kind !== "warranty" && amount > 0) {
+      const tier = doc.priceTier;
+      if (tier === "mayoreo" || tier === "menudeo") {
+        tierTotals[tier] += amount;
+      } else {
+        tierTotals.sin_tier += amount;
+      }
+    }
+  }
+
+  const tickets = saleDocs.length;
+  return {
+    summary: {
+      tickets,
+      total,
+      avgTicket: tickets > 0 ? total / tickets : 0,
+      pieces,
+    },
+    byPayment: [...byPayment.entries()]
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount),
+    byPriceTier: [
+      { label: "Mayoreo", amount: tierTotals.mayoreo },
+      { label: "Menudeo", amount: tierTotals.menudeo },
+      ...(tierTotals.sin_tier > 0
+        ? [{ label: "Sin tipo", amount: tierTotals.sin_tier }]
+        : []),
+    ].filter((row) => row.amount !== 0),
+  };
 }
 
 /** Ingreso neto en caja: reembolsos restan; cambios $0 no suman. */
@@ -81,24 +153,7 @@ export async function buildLiveSalesReport(period = "month") {
     ProductModel.find().lean(),
   ]);
 
-  let total = 0;
-  let pieces = 0;
-  const byPayment = new Map();
-
-  for (const doc of saleDocs) {
-    const amount = saleNetAmount(doc);
-    total += amount;
-    const countPieces = doc.kind !== "warranty";
-    if (countPieces) {
-      for (const item of doc.items ?? []) {
-        pieces += item.qty ?? 0;
-      }
-    }
-    const label = paymentLabel(doc);
-    byPayment.set(label, (byPayment.get(label) ?? 0) + amount);
-  }
-
-  const tickets = saleDocs.length;
+  const { summary, byPayment, byPriceTier } = summarizeSaleDocs(saleDocs);
   const starProducts = aggregateStarProducts(saleDocs).slice(0, 25);
 
   const outOfStock = [];
@@ -141,15 +196,9 @@ export async function buildLiveSalesReport(period = "month") {
   return {
     generatedAt: new Date().toISOString(),
     period: p,
-    summary: {
-      tickets,
-      total,
-      avgTicket: tickets > 0 ? total / tickets : 0,
-      pieces,
-    },
-    byPayment: [...byPayment.entries()]
-      .map(([label, amount]) => ({ label, amount }))
-      .sort((a, b) => b.amount - a.amount),
+    summary,
+    byPayment,
+    byPriceTier,
     starProducts,
     outOfStock,
     lowStock,

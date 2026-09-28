@@ -402,10 +402,8 @@ export function PublicCatalogPage({ showPrices }: Props) {
         <h1 className={styles.brand}>{data.title}</h1>
         <p className={styles.sub}>
           {singleMaterial
-            ? `Catálogo ${materialCatalogs[0]!.material}${showPrices ? " · con precios" : ""}`
-            : showPrices
-              ? "Un catálogo por material · apartados por categoría"
-              : "Un catálogo por material · consulta en tienda"}
+            ? `Catálogo ${materialCatalogs[0]!.material}${showPrices ? " · con precios" : " · sin precios"}`
+            : "Un catálogo por material · apartados por categoría"}
         </p>
         {singleMaterial ? (
           <Link

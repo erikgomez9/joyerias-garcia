@@ -81,7 +81,7 @@ function saleDetailSummary(
 
 export function SalesPage() {
   const { sales, orders, products, inventorySource } = usePos();
-  const [period, setPeriod] = useState<SalesPeriod>("month");
+  const [period, setPeriod] = useState<SalesPeriod>("today");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [pendingScrollSaleId, setPendingScrollSaleId] = useState<string | null>(
     null

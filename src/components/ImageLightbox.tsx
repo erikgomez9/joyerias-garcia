@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type TouchEvent } from "react";
 import styles from "./ImageLightbox.module.css";
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
   navHint?: string;
 }
 
+const SWIPE_MIN_PX = 48;
+
 export function ImageLightbox({
   src,
   alt,
@@ -23,6 +25,9 @@ export function ImageLightbox({
   onNext,
   navHint,
 }: Props) {
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -34,7 +39,36 @@ export function ImageLightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, onPrevious, onNext]);
 
+  function onTouchStart(e: TouchEvent) {
+    const t = e.changedTouches[0];
+    if (!t) return;
+    touchStartX.current = t.clientX;
+    touchStartY.current = t.clientY;
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    const startX = touchStartX.current;
+    const startY = touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (startX == null || startY == null) return;
+
+    const t = e.changedTouches[0];
+    if (!t) return;
+
+    const deltaX = t.clientX - startX;
+    const deltaY = t.clientY - startY;
+
+    if (Math.abs(deltaX) < SWIPE_MIN_PX) return;
+    if (Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    if (deltaX < 0) onNext?.();
+    else onPrevious?.();
+  }
+
   if (!open) return null;
+
+  const canSwipe = Boolean(onPrevious || onNext);
 
   return (
     <div
@@ -47,35 +81,14 @@ export function ImageLightbox({
       <button type="button" className={styles.close} onClick={onClose}>
         Cerrar
       </button>
-      {onPrevious ? (
-        <button
-          type="button"
-          className={`${styles.nav} ${styles.navPrev}`}
-          aria-label="Pieza anterior"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrevious();
-          }}
-        >
-          ‹
-        </button>
-      ) : null}
-      {onNext ? (
-        <button
-          type="button"
-          className={`${styles.nav} ${styles.navNext}`}
-          aria-label="Pieza siguiente"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNext();
-          }}
-        >
-          ›
-        </button>
-      ) : null}
-      <div className={styles.frame} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.frame}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={canSwipe ? onTouchStart : undefined}
+        onTouchEnd={canSwipe ? onTouchEnd : undefined}
+      >
         {navHint ? <p className={styles.navHint}>{navHint}</p> : null}
-        <img className={styles.image} src={src} alt={alt} />
+        <img className={styles.image} src={src} alt={alt} draggable={false} />
         {footer ? <div className={styles.footer}>{footer}</div> : null}
       </div>
     </div>

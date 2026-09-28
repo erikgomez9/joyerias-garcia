@@ -500,7 +500,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
         }
         navHint={
           zoomIndex != null && galleryItems.length > 1
-            ? `${zoomIndex + 1} de ${galleryItems.length} · flechas ← →`
+            ? `${zoomIndex + 1} de ${galleryItems.length} · desliza para cambiar`
             : undefined
         }
         footer={

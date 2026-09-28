@@ -22,11 +22,6 @@ import {
   type ProductStatusFilter,
 } from "@/lib/stockDisplay";
 import {
-  filterSizeGroups,
-  formatSizeGroupLine,
-  groupProductsByModel,
-} from "@/lib/productSizeGroups";
-import {
   categoryUsesSize,
   sizeFieldLabel,
   sizeFieldPlaceholder,
@@ -90,7 +85,6 @@ export function CatalogPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [stockBusyId, setStockBusyId] = useState<string | null>(null);
-
   async function changeStock(id: string, delta: number) {
     setStockBusyId(id);
     try {
@@ -123,11 +117,6 @@ export function CatalogPage() {
     );
     return { pieces, value, skus: products.length };
   }, [products]);
-
-  const sizeGroups = useMemo(() => {
-    const groups = groupProductsByModel(products);
-    return filterSizeGroups(groups, q);
-  }, [products, q]);
 
   function openCreate() {
     setEditing(null);
@@ -257,8 +246,7 @@ export function CatalogPage() {
       <h1 className={ui.pageTitle}>Inventario</h1>
       <p className={ui.pageDesc}>
         Piezas iguales comparten SKU y stock. En anillos, pulseras y cadenas,
-        cada talla o longitud lleva su propio código; abajo ves el resumen por
-        modelo.
+        cada talla o longitud lleva su propio código (+ Talla en la misma fila).
       </p>
 
       {inventorySource === "local" && (
@@ -303,37 +291,6 @@ export function CatalogPage() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
-
-      {sizeGroups.length > 0 && (
-        <section
-          className={styles.sizeGroupPanel}
-          aria-labelledby="size-group-title"
-        >
-          <h2 id="size-group-title" className={styles.sizeGroupTitle}>
-            Stock por modelo (tallas y longitudes)
-          </h2>
-          <p className={styles.sizeGroupDesc}>
-            Mismo nombre de pieza agrupado; cada medida mantiene su código y
-            existencias.
-          </p>
-          <ul className={styles.sizeGroupList}>
-            {sizeGroups.map((g) => (
-              <li key={g.key} className={styles.sizeGroupRow}>
-                <div className={styles.sizeGroupHead}>
-                  <strong className={styles.sizeGroupName}>{g.name}</strong>
-                  <span className={ui.badge}>{g.category}</span>
-                  <span className={styles.sizeGroupTotal}>
-                    {g.totalStock} pza{g.totalStock === 1 ? "" : "s"} total
-                  </span>
-                </div>
-                <p className={styles.sizeGroupVariants}>
-                  {formatSizeGroupLine(g)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {products.length > 0 && (
         <div className={styles.catalogFilters}>

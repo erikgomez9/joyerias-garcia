@@ -103,6 +103,7 @@ export interface PublicCatalogItem {
   metalOther?: string;
   stones?: string;
   size?: string;
+  notes?: string;
   image: string;
   sku: string;
   soldOut: boolean;

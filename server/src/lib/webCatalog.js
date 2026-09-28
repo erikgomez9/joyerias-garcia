@@ -49,6 +49,7 @@ export function toPublicCatalogItem(doc, showPrices) {
     metalOther: doc.metalOther,
     stones: doc.stones,
     size: doc.size?.trim() || undefined,
+    notes: doc.notes?.trim() || undefined,
     image: doc.image,
     sku: doc.sku,
     soldOut,

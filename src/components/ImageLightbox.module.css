@@ -39,6 +39,7 @@
   position: fixed;
   top: 1rem;
   right: 1rem;
+  z-index: 2;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -46,4 +47,44 @@
   color: var(--text);
   font-weight: 500;
   cursor: pointer;
+}
+
+.nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2.75rem;
+  height: 3.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: rgba(20, 20, 24, 0.92);
+  color: var(--gold);
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0.15rem;
+}
+
+.nav:hover {
+  background: var(--bg-panel);
+  border-color: var(--gold);
+}
+
+.navPrev {
+  left: max(0.35rem, env(safe-area-inset-left));
+}
+
+.navNext {
+  right: max(0.35rem, env(safe-area-inset-right));
+}
+
+.navHint {
+  margin: 0 0 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }

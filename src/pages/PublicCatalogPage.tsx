@@ -210,7 +210,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeMaterial, setActiveMaterial] = useState<string>("all");
-  const [zoomItem, setZoomItem] = useState<PublicCatalogItem | null>(null);
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
 
   const load = useCallback(
     async (silent = false) => {
@@ -273,6 +273,58 @@ export function PublicCatalogPage({ showPrices }: Props) {
     () => allMaterialCatalogs.map((b) => b.material),
     [allMaterialCatalogs]
   );
+
+  const galleryItems = useMemo(() => {
+    const list: PublicCatalogItem[] = [];
+    for (const block of materialCatalogs) {
+      for (const cat of block.categories) {
+        list.push(...cat.items);
+      }
+    }
+    return list;
+  }, [materialCatalogs]);
+
+  const zoomItem =
+    zoomIndex != null && zoomIndex >= 0 && zoomIndex < galleryItems.length
+      ? galleryItems[zoomIndex]!
+      : null;
+
+  function openZoom(item: PublicCatalogItem) {
+    const i = galleryItems.findIndex((x) => x.id === item.id);
+    setZoomIndex(i >= 0 ? i : null);
+  }
+
+  function closeZoom() {
+    setZoomIndex(null);
+  }
+
+  function goPrev() {
+    setZoomIndex((i) => {
+      if (i == null || i <= 0) return i;
+      return i - 1;
+    });
+  }
+
+  function goNext() {
+    setZoomIndex((i) => {
+      if (i == null || i >= galleryItems.length - 1) return i;
+      return i + 1;
+    });
+  }
+
+  useEffect(() => {
+    if (zoomIndex == null || !data) return;
+    if (zoomIndex >= galleryItems.length) {
+      setZoomIndex(galleryItems.length > 0 ? galleryItems.length - 1 : null);
+      return;
+    }
+    const id = galleryItems[zoomIndex]?.id;
+    if (!id) return;
+    const freshIndex = galleryItems.findIndex((x) => x.id === id);
+    if (freshIndex >= 0 && freshIndex !== zoomIndex) {
+      setZoomIndex(freshIndex);
+    }
+  }, [data, galleryItems, zoomIndex]);
 
   useEffect(() => {
     if (materialSlugParam && materialCatalogs[0]) {
@@ -423,7 +475,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
               key={block.materialSlug}
               block={block}
               showPrices={showPrices}
-              onZoom={setZoomItem}
+              onZoom={openZoom}
             />
           ))
         )}
@@ -437,7 +489,20 @@ export function PublicCatalogPage({ showPrices }: Props) {
         open={zoomItem != null}
         src={zoomItem?.image ?? ""}
         alt={zoomItem ? itemTitle(zoomItem) : ""}
-        onClose={() => setZoomItem(null)}
+        onClose={closeZoom}
+        onPrevious={
+          zoomIndex != null && zoomIndex > 0 ? goPrev : undefined
+        }
+        onNext={
+          zoomIndex != null && zoomIndex < galleryItems.length - 1
+            ? goNext
+            : undefined
+        }
+        navHint={
+          zoomIndex != null && galleryItems.length > 1
+            ? `${zoomIndex + 1} de ${galleryItems.length} · flechas ← →`
+            : undefined
+        }
         footer={
           zoomItem ? (
             <ZoomFooter item={zoomItem} showPrices={showPrices} />

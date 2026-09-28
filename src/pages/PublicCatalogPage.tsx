@@ -77,6 +77,35 @@ function CatalogSizeBadge({ item }: { item: PublicCatalogItem }) {
   );
 }
 
+function catalogMarcaLabel(
+  item: PublicCatalogItem,
+  materialFallback?: string
+): string | null {
+  if (item.metal) {
+    const m = metalLabel(item.metal, item.metalOther);
+    return m === "—" ? null : m;
+  }
+  const fb = materialFallback?.trim();
+  return fb || null;
+}
+
+function CatalogMarcaBadge({
+  item,
+  materialFallback,
+}: {
+  item: PublicCatalogItem;
+  materialFallback?: string;
+}) {
+  const marca = catalogMarcaLabel(item, materialFallback);
+  if (!marca) return null;
+  return (
+    <p className={styles.marcaBadge} aria-label={`Marca ${marca}`}>
+      <span className={styles.marcaBadgeLabel}>Marca</span>
+      <span className={styles.marcaBadgeValue}>{marca}</span>
+    </p>
+  );
+}
+
 function ZoomIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -100,17 +129,22 @@ function ZoomIcon() {
 function ZoomFooter({
   item,
   showPrices,
+  storeTitle,
+  materialFallback,
 }: {
   item: PublicCatalogItem;
   showPrices: boolean;
+  storeTitle: string;
+  materialFallback?: string;
 }) {
   return (
     <div className={styles.zoomFooter}>
+      <p className={styles.zoomStoreLine}>{storeTitle}</p>
       <p className={styles.zoomTitle}>{catalogItemName(item)}</p>
+      <CatalogMarcaBadge item={item} materialFallback={materialFallback} />
       <CatalogSizeBadge item={item} />
       <p className={styles.zoomMeta}>
         {item.category}
-        {item.metal ? ` · ${metalLabel(item.metal, item.metalOther)}` : ""}
         {item.stones ? ` · ${item.stones}` : ""}
       </p>
       {item.soldOut ? (
@@ -143,13 +177,18 @@ function ZoomFooter({
 
 function CatalogProductCard({
   item,
+  storeTitle,
+  materialFallback,
   showPrices,
   onZoom,
 }: {
   item: PublicCatalogItem;
+  storeTitle: string;
+  materialFallback?: string;
   showPrices: boolean;
   onZoom: (item: PublicCatalogItem) => void;
 }) {
+  const marca = catalogMarcaLabel(item, materialFallback);
   return (
     <li
       className={`${styles.card} ${item.soldOut ? styles.cardSoldOut : ""}`}
@@ -161,15 +200,25 @@ function CatalogProductCard({
         onClick={() => onZoom(item)}
       >
         <img src={item.image} alt="" loading="lazy" />
+        <span className={styles.cardStoreMark} aria-hidden>
+          {storeTitle}
+        </span>
+        {marca ? (
+          <span className={styles.cardMarcaPill} aria-hidden>
+            {marca}
+          </span>
+        ) : null}
         <span className={styles.zoomBtn} aria-hidden>
           <ZoomIcon />
         </span>
       </button>
       <div className={styles.body}>
         <p className={styles.name}>{catalogItemName(item)}</p>
+        <CatalogMarcaBadge item={item} materialFallback={materialFallback} />
         <CatalogSizeBadge item={item} />
         <p className={styles.meta}>
-          {item.stones ? item.stones : "\u00a0"}
+          {item.category}
+          {item.stones ? ` · ${item.stones}` : ""}
         </p>
         {item.soldOut ? (
           <span className={styles.badgeSoldOut} role="status">
@@ -310,6 +359,8 @@ function MaterialCatalogSection({
               <CatalogProductCard
                 key={item.id}
                 item={item}
+                storeTitle={storeTitle}
+                materialFallback={block.material}
                 showPrices={showPrices}
                 onZoom={onZoom}
               />
@@ -417,6 +468,18 @@ export function PublicCatalogPage({ showPrices }: Props) {
     zoomIndex != null && zoomIndex >= 0 && zoomIndex < galleryItems.length
       ? galleryItems[zoomIndex]!
       : null;
+
+  const zoomMaterialFallback = useMemo(() => {
+    if (!zoomItem) return undefined;
+    for (const block of materialCatalogs) {
+      for (const cat of block.categories) {
+        if (cat.items.some((i) => i.id === zoomItem.id)) {
+          return block.material;
+        }
+      }
+    }
+    return undefined;
+  }, [zoomItem, materialCatalogs]);
 
   function openZoom(item: PublicCatalogItem) {
     const i = galleryItems.findIndex((x) => x.id === item.id);
@@ -649,7 +712,12 @@ export function PublicCatalogPage({ showPrices }: Props) {
         }
         footer={
           zoomItem ? (
-            <ZoomFooter item={zoomItem} showPrices={showPrices} />
+            <ZoomFooter
+              item={zoomItem}
+              showPrices={showPrices}
+              storeTitle={data.title}
+              materialFallback={zoomMaterialFallback}
+            />
           ) : undefined
         }
       />

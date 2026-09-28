@@ -254,6 +254,82 @@
   font-variant-numeric: tabular-nums;
 }
 
+.marcaBadge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.1rem 0 0;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+
+.marcaBadgeLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.marcaBadgeValue {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cardStoreMark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.72) 55%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+  pointer-events: none;
+}
+
+.cardMarcaPill {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1a1508;
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  max-width: calc(100% - 3rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zoomStoreLine {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
 .meta {
   font-size: 0.72rem;
   color: var(--text-muted);

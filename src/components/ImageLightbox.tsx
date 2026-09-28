@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import styles from "./ImageLightbox.module.css";
 
 interface Props {
@@ -5,9 +6,11 @@ interface Props {
   alt: string;
   open: boolean;
   onClose: () => void;
+  /** Texto o precios bajo la imagen ampliada */
+  footer?: ReactNode;
 }
 
-export function ImageLightbox({ src, alt, open, onClose }: Props) {
+export function ImageLightbox({ src, alt, open, onClose, footer }: Props) {
   if (!open) return null;
 
   return (
@@ -21,12 +24,10 @@ export function ImageLightbox({ src, alt, open, onClose }: Props) {
       <button type="button" className={styles.close} onClick={onClose}>
         Cerrar
       </button>
-      <img
-        className={styles.image}
-        src={src}
-        alt={alt}
-        onClick={(e) => e.stopPropagation()}
-      />
+      <div className={styles.frame} onClick={(e) => e.stopPropagation()}>
+        <img className={styles.image} src={src} alt={alt} />
+        {footer ? <div className={styles.footer}>{footer}</div> : null}
+      </div>
     </div>
   );
 }

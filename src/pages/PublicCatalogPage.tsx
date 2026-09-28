@@ -4,6 +4,10 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { catalogWebApi, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, metalLabel } from "@/lib/format";
 import { productDisplayName } from "@/lib/productSize";
+import {
+  groupCatalogByMaterial,
+  materialAnchorId,
+} from "@/lib/webCatalogGrouping";
 import type { PublicCatalogItem, PublicCatalogResponse } from "@/types";
 import styles from "./PublicCatalogPage.module.css";
 
@@ -15,14 +19,6 @@ const AUTO_REFRESH_MS = 30_000;
 
 function itemTitle(item: PublicCatalogItem): string {
   return productDisplayName({ name: item.name, size: item.size });
-}
-
-function categoryAnchorId(category: string): string {
-  return `vitrina-cat-${category
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")}`;
 }
 
 function ZoomIcon() {
@@ -45,14 +41,57 @@ function ZoomIcon() {
   );
 }
 
+function ZoomFooter({
+  item,
+  showPrices,
+}: {
+  item: PublicCatalogItem;
+  showPrices: boolean;
+}) {
+  return (
+    <div className={styles.zoomFooter}>
+      <p className={styles.zoomTitle}>{itemTitle(item)}</p>
+      <p className={styles.zoomMeta}>
+        {item.category}
+        {item.metal ? ` · ${metalLabel(item.metal, item.metalOther)}` : ""}
+        {item.stones ? ` · ${item.stones}` : ""}
+      </p>
+      {item.soldOut ? (
+        <span className={styles.badgeSoldOut} role="status">
+          {item.soldOutLabel ?? "Agotada — no disponible"}
+        </span>
+      ) : null}
+      {showPrices &&
+      (item.priceMayoreo != null || item.priceMenudeo != null) ? (
+        <div className={styles.zoomPrices}>
+          {item.priceMayoreo != null ? (
+            <div className={styles.priceRow}>
+              <span>Mayoreo</span>
+              <strong>{formatMoney(item.priceMayoreo)}</strong>
+            </div>
+          ) : null}
+          {item.priceMenudeo != null ? (
+            <div className={styles.priceRow}>
+              <span>Menudeo</span>
+              <strong className={styles.priceMenudeo}>
+                {formatMoney(item.priceMenudeo)}
+              </strong>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function PublicCatalogPage({ showPrices }: Props) {
   const { slug = "" } = useParams();
   const [data, setData] = useState<PublicCatalogResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
+  const [activeMaterial, setActiveMaterial] = useState<string>("all");
+  const [zoomItem, setZoomItem] = useState<PublicCatalogItem | null>(null);
 
   const load = useCallback(
     async (silent = false) => {
@@ -98,42 +137,27 @@ export function PublicCatalogPage({ showPrices }: Props) {
     };
   }, [load]);
 
-  const byCategory = useMemo(() => {
-    if (!data) return [];
-    const map = new Map<string, PublicCatalogItem[]>();
-    for (const item of data.items) {
-      const list = map.get(item.category) ?? [];
-      list.push(item);
-      map.set(item.category, list);
-    }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [data]);
-
-  const categories = useMemo(
-    () => byCategory.map(([name]) => name),
-    [byCategory]
+  const byMaterial = useMemo(
+    () => (data ? groupCatalogByMaterial(data.items) : []),
+    [data]
   );
 
-  const visibleSections = useMemo(() => {
-    if (categoryFilter === "all") return byCategory;
-    return byCategory.filter(([name]) => name === categoryFilter);
-  }, [byCategory, categoryFilter]);
+  const materials = useMemo(
+    () => byMaterial.map(([name]) => name),
+    [byMaterial]
+  );
 
-  function selectCategory(cat: string) {
-    setCategoryFilter(cat);
-    if (cat !== "all") {
-      window.requestAnimationFrame(() => {
-        document
-          .getElementById(categoryAnchorId(cat))
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    } else {
+  function scrollToMaterial(material: string) {
+    setActiveMaterial(material);
+    if (material === "all") {
       window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
     }
-  }
-
-  function openZoom(item: PublicCatalogItem) {
-    setZoom({ src: item.image, alt: itemTitle(item) });
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(materialAnchorId(material))
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   if (loading && !data) {
@@ -178,8 +202,8 @@ export function PublicCatalogPage({ showPrices }: Props) {
         <h1 className={styles.brand}>{data.title}</h1>
         <p className={styles.sub}>
           {showPrices
-            ? "Precios mayoreo y menudeo · inventario en tiempo real"
-            : "Todo el inventario · consulta precio en tienda"}
+            ? "Por material · mayoreo y menudeo · inventario en tiempo real"
+            : "Por material · todo el inventario · consulta en tienda"}
         </p>
         <div className={styles.syncBar}>
           <span>
@@ -197,28 +221,28 @@ export function PublicCatalogPage({ showPrices }: Props) {
         </div>
       </header>
 
-      {categories.length > 0 && (
-        <nav className={styles.categoryNav} aria-label="Categorías">
+      {materials.length > 0 && (
+        <nav className={styles.categoryNav} aria-label="Materiales">
           <div className={styles.chips} role="tablist">
             <button
               type="button"
               role="tab"
-              aria-selected={categoryFilter === "all"}
-              className={`${styles.chip} ${categoryFilter === "all" ? styles.chipActive : ""}`}
-              onClick={() => selectCategory("all")}
+              aria-selected={activeMaterial === "all"}
+              className={`${styles.chip} ${activeMaterial === "all" ? styles.chipActive : ""}`}
+              onClick={() => scrollToMaterial("all")}
             >
-              Todas
+              Todos
             </button>
-            {categories.map((cat) => (
+            {materials.map((mat) => (
               <button
-                key={cat}
+                key={mat}
                 type="button"
                 role="tab"
-                aria-selected={categoryFilter === cat}
-                className={`${styles.chip} ${categoryFilter === cat ? styles.chipActive : ""}`}
-                onClick={() => selectCategory(cat)}
+                aria-selected={activeMaterial === mat}
+                className={`${styles.chip} ${activeMaterial === mat ? styles.chipActive : ""}`}
+                onClick={() => scrollToMaterial(mat)}
               >
-                {cat}
+                {mat}
               </button>
             ))}
           </div>
@@ -227,92 +251,96 @@ export function PublicCatalogPage({ showPrices }: Props) {
 
       {error ? <p className={styles.errorBanner}>{error}</p> : null}
 
-      {data.items.length === 0 ? (
-        <p className={styles.empty}>
-          No hay piezas en el inventario enlazado a esta vitrina. Si acabas de
-          dar de alta joyas, revisa que la app esté conectada a MongoDB (no solo
-          en este navegador).
-        </p>
-      ) : (
-        visibleSections.map(([category, items]) => (
-          <section
-            key={category}
-            id={categoryAnchorId(category)}
-            className={styles.section}
-            aria-labelledby={`title-${categoryAnchorId(category)}`}
-          >
-            <h2
-              id={`title-${categoryAnchorId(category)}`}
-              className={styles.categoryTitle}
+      <main className={styles.catalogFlow}>
+        {data.items.length === 0 ? (
+          <p className={styles.empty}>
+            No hay piezas en el inventario enlazado a esta vitrina.
+          </p>
+        ) : (
+          byMaterial.map(([material, items]) => (
+            <section
+              key={material}
+              id={materialAnchorId(material)}
+              className={styles.section}
+              aria-labelledby={`title-${materialAnchorId(material)}`}
             >
-              {category}
-            </h2>
-            <ul className={styles.grid}>
-              {items.map((item) => (
-                <li
-                  key={item.id}
-                  className={`${styles.card} ${item.soldOut ? styles.cardSoldOut : ""}`}
-                >
-                  <button
-                    type="button"
-                    className={styles.imageWrap}
-                    aria-label={`Ampliar foto de ${itemTitle(item)}`}
-                    onClick={() => openZoom(item)}
+              <h2
+                id={`title-${materialAnchorId(material)}`}
+                className={styles.categoryTitle}
+              >
+                {material}
+              </h2>
+              <ul className={styles.grid}>
+                {items.map((item) => (
+                  <li
+                    key={item.id}
+                    className={`${styles.card} ${item.soldOut ? styles.cardSoldOut : ""}`}
                   >
-                    <img src={item.image} alt="" loading="lazy" />
-                    <span className={styles.zoomBtn} aria-hidden>
-                      <ZoomIcon />
-                    </span>
-                  </button>
-                  <div className={styles.body}>
-                    <p className={styles.name}>{itemTitle(item)}</p>
-                    <p className={styles.meta}>
-                      {item.metal
-                        ? metalLabel(item.metal, item.metalOther)
-                        : item.category}
-                      {item.stones ? ` · ${item.stones}` : ""}
-                    </p>
-                    {item.soldOut ? (
-                      <span className={styles.badgeSoldOut} role="status">
-                        {item.soldOutLabel ?? "Agotada — no disponible"}
+                    <button
+                      type="button"
+                      className={styles.imageWrap}
+                      aria-label={`Ampliar foto de ${itemTitle(item)}`}
+                      onClick={() => setZoomItem(item)}
+                    >
+                      <img src={item.image} alt="" loading="lazy" />
+                      <span className={styles.zoomBtn} aria-hidden>
+                        <ZoomIcon />
                       </span>
-                    ) : null}
-                    {showPrices &&
-                    (item.priceMayoreo != null || item.priceMenudeo != null) ? (
-                      <div className={styles.prices}>
-                        {item.priceMayoreo != null ? (
-                          <div className={styles.priceRow}>
-                            <span>Mayoreo</span>
-                            <strong>{formatMoney(item.priceMayoreo)}</strong>
-                          </div>
-                        ) : null}
-                        {item.priceMenudeo != null ? (
-                          <div className={styles.priceRow}>
-                            <span>Menudeo</span>
-                            <strong className={styles.priceMenudeo}>
-                              {formatMoney(item.priceMenudeo)}
-                            </strong>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
-      )}
+                    </button>
+                    <div className={styles.body}>
+                      <p className={styles.name}>{itemTitle(item)}</p>
+                      <p className={styles.meta}>
+                        {item.category}
+                        {item.stones ? ` · ${item.stones}` : ""}
+                      </p>
+                      {item.soldOut ? (
+                        <span className={styles.badgeSoldOut} role="status">
+                          {item.soldOutLabel ?? "Agotada — no disponible"}
+                        </span>
+                      ) : null}
+                      {showPrices &&
+                      (item.priceMayoreo != null ||
+                        item.priceMenudeo != null) ? (
+                        <div className={styles.prices}>
+                          {item.priceMayoreo != null ? (
+                            <div className={styles.priceRow}>
+                              <span>Mayoreo</span>
+                              <strong>{formatMoney(item.priceMayoreo)}</strong>
+                            </div>
+                          ) : null}
+                          {item.priceMenudeo != null ? (
+                            <div className={styles.priceRow}>
+                              <span>Menudeo</span>
+                              <strong className={styles.priceMenudeo}>
+                                {formatMoney(item.priceMenudeo)}
+                              </strong>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
+      </main>
 
       <footer className={styles.footer}>
         Se actualiza solo cada 30 s · Joyerías García
       </footer>
 
       <ImageLightbox
-        open={zoom != null}
-        src={zoom?.src ?? ""}
-        alt={zoom?.alt ?? ""}
-        onClose={() => setZoom(null)}
+        open={zoomItem != null}
+        src={zoomItem?.image ?? ""}
+        alt={zoomItem ? itemTitle(zoomItem) : ""}
+        onClose={() => setZoomItem(null)}
+        footer={
+          zoomItem ? (
+            <ZoomFooter item={zoomItem} showPrices={showPrices} />
+          ) : undefined
+        }
       />
     </div>
   );

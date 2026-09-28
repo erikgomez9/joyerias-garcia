@@ -272,8 +272,48 @@
   scroll-margin-top: 4.5rem;
 }
 
+.catalogFlow {
+  display: block;
+}
+
 .section {
   scroll-margin-top: 4.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.section + .section {
+  border-top: 1px solid var(--border);
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+}
+
+.zoomFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.zoomTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.zoomMeta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.zoomPrices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
 }
 
 .errorHint {

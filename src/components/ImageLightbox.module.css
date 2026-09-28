@@ -6,17 +6,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 2rem 1rem;
   cursor: zoom-out;
+  overflow-y: auto;
+}
+
+.frame {
+  max-width: min(92vw, 720px);
+  width: 100%;
+  cursor: default;
 }
 
 .image {
-  max-width: min(92vw, 720px);
-  max-height: 85vh;
+  display: block;
+  width: 100%;
+  max-height: min(70vh, 640px);
   object-fit: contain;
-  border-radius: 8px;
+  border-radius: 8px 8px 0 0;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
-  cursor: default;
+}
+
+.footer {
+  padding: 0.85rem 1rem 1rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
 .close {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePos } from "@/context/PosContext";
 import { apiBaseForDiagnostics, catalogWebApi } from "@/lib/api";
+import { buildMaterialCatalogs } from "@/lib/webCatalogGrouping";
 import { publicCatalogAbsoluteUrl } from "@/lib/webCatalogUrls";
 import { CATALOG_SOLD_OUT_GRACE_DAYS } from "@/lib/webCatalogConstants";
 import type { CatalogWebSettings } from "@/types";
@@ -13,6 +14,9 @@ export function SettingsPage() {
   const [catalogError, setCatalogError] = useState("");
   const [catalogBusy, setCatalogBusy] = useState(false);
   const [copyMsg, setCopyMsg] = useState("");
+  const [materialLinks, setMaterialLinks] = useState<
+    { label: string; slug: string }[]
+  >([]);
 
   const loadCatalog = useCallback(async () => {
     if (inventorySource !== "mongo") return;
@@ -32,16 +36,45 @@ export function SettingsPage() {
     void loadCatalog();
   }, [loadCatalog]);
 
-  async function copyLink(withPrices: boolean) {
-    if (!catalog) return;
-    const url = publicCatalogAbsoluteUrl(catalog.slug, withPrices);
+  useEffect(() => {
+    if (!catalog || inventorySource !== "mongo") {
+      setMaterialLinks([]);
+      return;
+    }
+    void catalogWebApi
+      .fetchPublic(catalog.slug, true)
+      .then((res) => {
+        const blocks = buildMaterialCatalogs(res.items);
+        setMaterialLinks(
+          blocks.map((b) => ({ label: b.material, slug: b.materialSlug }))
+        );
+      })
+      .catch(() => setMaterialLinks([]));
+  }, [catalog, inventorySource]);
+
+  async function copyText(url: string, okMessage: string) {
     try {
       await navigator.clipboard.writeText(url);
-      setCopyMsg(withPrices ? "Enlace con precios copiado." : "Enlace sin precios copiado.");
+      setCopyMsg(okMessage);
       window.setTimeout(() => setCopyMsg(""), 2500);
     } catch {
       setCopyMsg("No se pudo copiar; selecciona el enlace manualmente.");
     }
+  }
+
+  async function copyLink(withPrices: boolean) {
+    if (!catalog) return;
+    const url = publicCatalogAbsoluteUrl(catalog.slug, withPrices);
+    await copyText(
+      url,
+      withPrices ? "Enlace con precios copiado." : "Enlace sin precios copiado."
+    );
+  }
+
+  async function copyMaterialLink(materialSlug: string, label: string) {
+    if (!catalog) return;
+    const url = publicCatalogAbsoluteUrl(catalog.slug, true, materialSlug);
+    await copyText(url, `Catálogo ${label} copiado.`);
   }
 
   async function saveCatalogTitle(title: string) {
@@ -78,10 +111,11 @@ export function SettingsPage() {
           Catálogo web (vitrina)
         </h2>
         <p style={{ margin: "0 0 0.75rem", color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.5 }}>
-          Dos enlaces: <strong>con precios</strong> (mayoreo y menudeo) y{" "}
-          <strong>sin precios</strong>. Muestra <strong>todo el inventario</strong> en
-          tiempo real. Si una pieza se agota, verás <strong>Agotada</strong> hasta{" "}
-          {CATALOG_SOLD_OUT_GRACE_DAYS} días; después desaparece del enlace (sigue en inventario).
+          Enlace general <strong>con precios</strong> (todos los materiales) o{" "}
+          <strong>sin precios</strong>. También puedes compartir un{" "}
+          <strong>catálogo por material</strong>; dentro de cada uno las piezas van por{" "}
+          <strong>categoría</strong> (Anillos, Cadenas…). Inventario en tiempo real;
+          agotadas hasta {CATALOG_SOLD_OUT_GRACE_DAYS} días y luego salen del enlace.
         </p>
         {inventorySource !== "mongo" ? (
           <div
@@ -133,7 +167,9 @@ export function SettingsPage() {
               />
             </label>
             <div style={{ marginBottom: "0.75rem" }}>
-              <div className={styles.catalogFiltersLabel}>Con precios (menudeo)</div>
+              <div className={styles.catalogFiltersLabel}>
+                Con precios (todos los materiales)
+              </div>
               <code
                 style={{
                   display: "block",
@@ -155,6 +191,35 @@ export function SettingsPage() {
                 Copiar enlace con precios
               </button>
             </div>
+            {materialLinks.length > 0 ? (
+              <div style={{ marginBottom: "0.75rem" }}>
+                <div className={styles.catalogFiltersLabel}>
+                  Catálogo con precios por material
+                </div>
+                <ul
+                  style={{
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.45rem",
+                  }}
+                >
+                  {materialLinks.map((m) => (
+                    <li key={m.slug}>
+                      <button
+                        type="button"
+                        className={ui.btn}
+                        onClick={() => void copyMaterialLink(m.slug, m.label)}
+                      >
+                        Copiar · {m.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <div style={{ marginBottom: "0.75rem" }}>
               <div className={styles.catalogFiltersLabel}>Sin precios</div>
               <code

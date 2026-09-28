@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { catalogWebApi, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, metalLabel } from "@/lib/format";
 import { productDisplayName } from "@/lib/productSize";
+import { publicCatalogPath } from "@/lib/webCatalogUrls";
 import {
-  groupCatalogByMaterial,
+  buildMaterialCatalogs,
+  categoryAnchorId,
   materialAnchorId,
+  type MaterialCatalogBlock,
 } from "@/lib/webCatalogGrouping";
 import type { PublicCatalogItem, PublicCatalogResponse } from "@/types";
 import styles from "./PublicCatalogPage.module.css";
@@ -84,8 +87,124 @@ function ZoomFooter({
   );
 }
 
+function CatalogProductCard({
+  item,
+  showPrices,
+  onZoom,
+}: {
+  item: PublicCatalogItem;
+  showPrices: boolean;
+  onZoom: (item: PublicCatalogItem) => void;
+}) {
+  return (
+    <li
+      className={`${styles.card} ${item.soldOut ? styles.cardSoldOut : ""}`}
+    >
+      <button
+        type="button"
+        className={styles.imageWrap}
+        aria-label={`Ampliar foto de ${itemTitle(item)}`}
+        onClick={() => onZoom(item)}
+      >
+        <img src={item.image} alt="" loading="lazy" />
+        <span className={styles.zoomBtn} aria-hidden>
+          <ZoomIcon />
+        </span>
+      </button>
+      <div className={styles.body}>
+        <p className={styles.name}>{itemTitle(item)}</p>
+        <p className={styles.meta}>
+          {item.stones ? item.stones : "\u00a0"}
+        </p>
+        {item.soldOut ? (
+          <span className={styles.badgeSoldOut} role="status">
+            {item.soldOutLabel ?? "Agotada — no disponible"}
+          </span>
+        ) : null}
+        {showPrices &&
+        (item.priceMayoreo != null || item.priceMenudeo != null) ? (
+          <div className={styles.prices}>
+            {item.priceMayoreo != null ? (
+              <div className={styles.priceRow}>
+                <span>Mayoreo</span>
+                <strong>{formatMoney(item.priceMayoreo)}</strong>
+              </div>
+            ) : null}
+            {item.priceMenudeo != null ? (
+              <div className={styles.priceRow}>
+                <span>Menudeo</span>
+                <strong className={styles.priceMenudeo}>
+                  {formatMoney(item.priceMenudeo)}
+                </strong>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+function MaterialCatalogSection({
+  block,
+  showPrices,
+  onZoom,
+}: {
+  block: MaterialCatalogBlock;
+  showPrices: boolean;
+  onZoom: (item: PublicCatalogItem) => void;
+}) {
+  return (
+    <article
+      id={materialAnchorId(block.material)}
+      className={styles.materialCatalog}
+      aria-labelledby={`catalog-${materialAnchorId(block.material)}`}
+    >
+      <header className={styles.materialCatalogHead}>
+        <h2
+          id={`catalog-${materialAnchorId(block.material)}`}
+          className={styles.materialCatalogTitle}
+        >
+          Catálogo · {block.material}
+        </h2>
+        <p className={styles.materialCatalogMeta}>
+          {block.itemCount} pieza{block.itemCount === 1 ? "" : "s"} ·{" "}
+          {block.categories.length} categoría
+          {block.categories.length === 1 ? "" : "s"}
+        </p>
+      </header>
+
+      {block.categories.map(({ category, items }) => (
+        <section
+          key={category}
+          id={categoryAnchorId(block.material, category)}
+          className={styles.categoryBlock}
+          aria-labelledby={`cat-${categoryAnchorId(block.material, category)}`}
+        >
+          <h3
+            id={`cat-${categoryAnchorId(block.material, category)}`}
+            className={styles.subCategoryTitle}
+          >
+            {category}
+          </h3>
+          <ul className={styles.grid}>
+            {items.map((item) => (
+              <CatalogProductCard
+                key={item.id}
+                item={item}
+                showPrices={showPrices}
+                onZoom={onZoom}
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </article>
+  );
+}
+
 export function PublicCatalogPage({ showPrices }: Props) {
-  const { slug = "" } = useParams();
+  const { slug = "", materialSlug: materialSlugParam } = useParams();
   const [data, setData] = useState<PublicCatalogResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -137,15 +256,29 @@ export function PublicCatalogPage({ showPrices }: Props) {
     };
   }, [load]);
 
-  const byMaterial = useMemo(
-    () => (data ? groupCatalogByMaterial(data.items) : []),
+  const materialCatalogs = useMemo(
+    () =>
+      data
+        ? buildMaterialCatalogs(data.items, materialSlugParam?.trim())
+        : [],
+    [data, materialSlugParam]
+  );
+
+  const allMaterialCatalogs = useMemo(
+    () => (data ? buildMaterialCatalogs(data.items) : []),
     [data]
   );
 
   const materials = useMemo(
-    () => byMaterial.map(([name]) => name),
-    [byMaterial]
+    () => allMaterialCatalogs.map((b) => b.material),
+    [allMaterialCatalogs]
   );
+
+  useEffect(() => {
+    if (materialSlugParam && materialCatalogs[0]) {
+      setActiveMaterial(materialCatalogs[0].material);
+    }
+  }, [materialSlugParam, materialCatalogs]);
 
   function scrollToMaterial(material: string) {
     setActiveMaterial(material);
@@ -159,6 +292,8 @@ export function PublicCatalogPage({ showPrices }: Props) {
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
+
+  const singleMaterial = materialSlugParam && materialCatalogs.length === 1;
 
   if (loading && !data) {
     return (
@@ -174,8 +309,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
         <p className={styles.error}>{error}</p>
         <p className={styles.errorHint}>
           Si acabas de subir joyas en la app, confirma en Ajustes que diga{" "}
-          <strong>Conectado a MongoDB</strong> (no modo local). En Vercel debe
-          existir <code>VITE_API_BASE</code> apuntando a tu API en Render.
+          <strong>Conectado a MongoDB</strong> (no modo local).
         </p>
         <button
           type="button"
@@ -196,19 +330,46 @@ export function PublicCatalogPage({ showPrices }: Props) {
     );
   }
 
+  if (materialSlugParam && materialCatalogs.length === 0) {
+    return (
+      <div className={styles.page}>
+        <p className={styles.error}>No hay piezas de este material en inventario.</p>
+        <Link
+          to={publicCatalogPath(slug, showPrices)}
+          className={styles.backCatalogLink}
+        >
+          Ver todos los catálogos
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.brand}>{data.title}</h1>
         <p className={styles.sub}>
-          {showPrices
-            ? "Por material · mayoreo y menudeo · inventario en tiempo real"
-            : "Por material · todo el inventario · consulta en tienda"}
+          {singleMaterial
+            ? `Catálogo ${materialCatalogs[0]!.material}${showPrices ? " · con precios" : ""}`
+            : showPrices
+              ? "Un catálogo por material · apartados por categoría"
+              : "Un catálogo por material · consulta en tienda"}
         </p>
+        {singleMaterial ? (
+          <Link
+            to={publicCatalogPath(slug, showPrices)}
+            className={styles.backCatalogLink}
+          >
+            Ver todos los materiales
+          </Link>
+        ) : null}
         <div className={styles.syncBar}>
           <span>
-            {data.items.length} pieza{data.items.length === 1 ? "" : "s"} ·
-            actualizado {formatDate(data.updatedAt)}
+            {materialCatalogs.reduce((n, b) => n + b.itemCount, 0)} pieza
+            {materialCatalogs.reduce((n, b) => n + b.itemCount, 0) === 1
+              ? ""
+              : "s"}{" "}
+            · actualizado {formatDate(data.updatedAt)}
           </span>
           <button
             type="button"
@@ -221,7 +382,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
         </div>
       </header>
 
-      {materials.length > 0 && (
+      {!singleMaterial && materials.length > 0 && (
         <nav className={styles.categoryNav} aria-label="Materiales">
           <div className={styles.chips} role="tablist">
             <button
@@ -233,16 +394,16 @@ export function PublicCatalogPage({ showPrices }: Props) {
             >
               Todos
             </button>
-            {materials.map((mat) => (
+            {allMaterialCatalogs.map((block) => (
               <button
-                key={mat}
+                key={block.materialSlug}
                 type="button"
                 role="tab"
-                aria-selected={activeMaterial === mat}
-                className={`${styles.chip} ${activeMaterial === mat ? styles.chipActive : ""}`}
-                onClick={() => scrollToMaterial(mat)}
+                aria-selected={activeMaterial === block.material}
+                className={`${styles.chip} ${activeMaterial === block.material ? styles.chipActive : ""}`}
+                onClick={() => scrollToMaterial(block.material)}
               >
-                {mat}
+                {block.material}
               </button>
             ))}
           </div>
@@ -252,77 +413,18 @@ export function PublicCatalogPage({ showPrices }: Props) {
       {error ? <p className={styles.errorBanner}>{error}</p> : null}
 
       <main className={styles.catalogFlow}>
-        {data.items.length === 0 ? (
+        {materialCatalogs.length === 0 ? (
           <p className={styles.empty}>
             No hay piezas en el inventario enlazado a esta vitrina.
           </p>
         ) : (
-          byMaterial.map(([material, items]) => (
-            <section
-              key={material}
-              id={materialAnchorId(material)}
-              className={styles.section}
-              aria-labelledby={`title-${materialAnchorId(material)}`}
-            >
-              <h2
-                id={`title-${materialAnchorId(material)}`}
-                className={styles.categoryTitle}
-              >
-                {material}
-              </h2>
-              <ul className={styles.grid}>
-                {items.map((item) => (
-                  <li
-                    key={item.id}
-                    className={`${styles.card} ${item.soldOut ? styles.cardSoldOut : ""}`}
-                  >
-                    <button
-                      type="button"
-                      className={styles.imageWrap}
-                      aria-label={`Ampliar foto de ${itemTitle(item)}`}
-                      onClick={() => setZoomItem(item)}
-                    >
-                      <img src={item.image} alt="" loading="lazy" />
-                      <span className={styles.zoomBtn} aria-hidden>
-                        <ZoomIcon />
-                      </span>
-                    </button>
-                    <div className={styles.body}>
-                      <p className={styles.name}>{itemTitle(item)}</p>
-                      <p className={styles.meta}>
-                        {item.category}
-                        {item.stones ? ` · ${item.stones}` : ""}
-                      </p>
-                      {item.soldOut ? (
-                        <span className={styles.badgeSoldOut} role="status">
-                          {item.soldOutLabel ?? "Agotada — no disponible"}
-                        </span>
-                      ) : null}
-                      {showPrices &&
-                      (item.priceMayoreo != null ||
-                        item.priceMenudeo != null) ? (
-                        <div className={styles.prices}>
-                          {item.priceMayoreo != null ? (
-                            <div className={styles.priceRow}>
-                              <span>Mayoreo</span>
-                              <strong>{formatMoney(item.priceMayoreo)}</strong>
-                            </div>
-                          ) : null}
-                          {item.priceMenudeo != null ? (
-                            <div className={styles.priceRow}>
-                              <span>Menudeo</span>
-                              <strong className={styles.priceMenudeo}>
-                                {formatMoney(item.priceMenudeo)}
-                              </strong>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          materialCatalogs.map((block) => (
+            <MaterialCatalogSection
+              key={block.materialSlug}
+              block={block}
+              showPrices={showPrices}
+              onZoom={setZoomItem}
+            />
           ))
         )}
       </main>

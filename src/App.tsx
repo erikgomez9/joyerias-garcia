@@ -17,6 +17,14 @@ export default function App() {
   return (
     <Routes>
       <Route
+        path="/vitrina/:slug/sin-precios/material/:materialSlug"
+        element={<PublicCatalogPage showPrices={false} />}
+      />
+      <Route
+        path="/vitrina/:slug/material/:materialSlug"
+        element={<PublicCatalogPage showPrices={true} />}
+      />
+      <Route
         path="/vitrina/:slug/sin-precios"
         element={<PublicCatalogPage showPrices={false} />}
       />

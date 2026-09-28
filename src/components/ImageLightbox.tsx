@@ -1,11 +1,22 @@
-import { useEffect, useRef, type ReactNode, type TouchEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type TouchEvent,
+} from "react";
 import styles from "./ImageLightbox.module.css";
+
+export type LightboxSlideDirection = "next" | "prev";
 
 interface Props {
   src: string;
   alt: string;
   open: boolean;
   onClose: () => void;
+  /** Cambia al pasar de pieza en pieza (dispara transición). */
+  mediaKey?: string;
+  slideDirection?: LightboxSlideDirection;
   /** Texto o precios bajo la imagen ampliada */
   footer?: ReactNode;
   onPrevious?: () => void;
@@ -24,9 +35,29 @@ export function ImageLightbox({
   onPrevious,
   onNext,
   navHint,
+  mediaKey,
+  slideDirection = "next",
 }: Props) {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const prevMediaKey = useRef<string | undefined>(undefined);
+  const [slideAnim, setSlideAnim] = useState<LightboxSlideDirection | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (!open || !mediaKey) return;
+    if (
+      prevMediaKey.current !== undefined &&
+      prevMediaKey.current !== mediaKey
+    ) {
+      setSlideAnim(slideDirection);
+      const t = window.setTimeout(() => setSlideAnim(null), 340);
+      prevMediaKey.current = mediaKey;
+      return () => window.clearTimeout(t);
+    }
+    prevMediaKey.current = mediaKey;
+  }, [open, mediaKey, slideDirection]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,8 +119,28 @@ export function ImageLightbox({
         onTouchEnd={canSwipe ? onTouchEnd : undefined}
       >
         {navHint ? <p className={styles.navHint}>{navHint}</p> : null}
-        <img className={styles.image} src={src} alt={alt} draggable={false} />
-        {footer ? <div className={styles.footer}>{footer}</div> : null}
+        <div
+          className={`${styles.imageStage} ${
+            slideAnim === "next"
+              ? styles.slideNext
+              : slideAnim === "prev"
+                ? styles.slidePrev
+                : ""
+          }`}
+          key={mediaKey ?? src}
+        >
+          <img className={styles.image} src={src} alt={alt} draggable={false} />
+        </div>
+        {footer ? (
+          <div
+            className={`${styles.footer} ${
+              slideAnim ? styles.footerSlide : ""
+            }`}
+            key={mediaKey ? `foot-${mediaKey}` : undefined}
+          >
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );

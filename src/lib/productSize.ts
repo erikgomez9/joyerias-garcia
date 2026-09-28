@@ -46,3 +46,41 @@ export function productDisplayName(
   if (!size) return product.name;
   return `${product.name} · ${size}`;
 }
+
+/** Vitrina: nombre del modelo sin mezclar la talla en el título. */
+export function catalogItemName(
+  product: Pick<Product, "name">
+): string {
+  return product.name.trim();
+}
+
+/** Vitrina: etiqueta clara de talla o medida para clientes. */
+export function catalogSizeDisplay(
+  category: string,
+  size?: string
+): { label: string; value: string } | null {
+  const value = formatProductSize(size);
+  if (!value) return null;
+  switch (category) {
+    case "Anillos":
+      return { label: "Talla", value };
+    case "Pulseras":
+      return { label: "Longitud", value };
+    case "Cadenas":
+      return { label: "Longitud", value };
+    default:
+      return categoryUsesSize(category)
+        ? { label: "Medida", value }
+        : { label: "Medida", value };
+  }
+}
+
+/** Texto accesible (zoom, aria) con talla explícita. */
+export function catalogAccessibleTitle(
+  product: Pick<Product, "name" | "size" | "category">
+): string {
+  const name = catalogItemName(product);
+  const size = catalogSizeDisplay(product.category, product.size);
+  if (!size) return name;
+  return `${name}, ${size.label} ${size.value}`;
+}

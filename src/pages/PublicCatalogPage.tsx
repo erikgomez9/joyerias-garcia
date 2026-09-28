@@ -3,7 +3,12 @@ import { Link, useParams } from "react-router-dom";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { catalogWebApi, ApiError } from "@/lib/api";
 import { formatDate, formatMoney, metalLabel } from "@/lib/format";
-import { productDisplayName } from "@/lib/productSize";
+import {
+  catalogAccessibleTitle,
+  catalogItemName,
+  catalogSizeDisplay,
+} from "@/lib/productSize";
+import type { LightboxSlideDirection } from "@/components/ImageLightbox";
 import { publicCatalogPath } from "@/lib/webCatalogUrls";
 import {
   buildMaterialCatalogs,
@@ -20,8 +25,23 @@ interface Props {
 
 const AUTO_REFRESH_MS = 30_000;
 
-function itemTitle(item: PublicCatalogItem): string {
-  return productDisplayName({ name: item.name, size: item.size });
+function itemAccessibleTitle(item: PublicCatalogItem): string {
+  return catalogAccessibleTitle({
+    name: item.name,
+    size: item.size,
+    category: item.category,
+  });
+}
+
+function CatalogSizeBadge({ item }: { item: PublicCatalogItem }) {
+  const size = catalogSizeDisplay(item.category, item.size);
+  if (!size) return null;
+  return (
+    <p className={styles.sizeBadge} aria-label={`${size.label} ${size.value}`}>
+      <span className={styles.sizeBadgeLabel}>{size.label}</span>
+      <span className={styles.sizeBadgeValue}>{size.value}</span>
+    </p>
+  );
 }
 
 function ZoomIcon() {
@@ -53,7 +73,8 @@ function ZoomFooter({
 }) {
   return (
     <div className={styles.zoomFooter}>
-      <p className={styles.zoomTitle}>{itemTitle(item)}</p>
+      <p className={styles.zoomTitle}>{catalogItemName(item)}</p>
+      <CatalogSizeBadge item={item} />
       <p className={styles.zoomMeta}>
         {item.category}
         {item.metal ? ` · ${metalLabel(item.metal, item.metalOther)}` : ""}
@@ -103,7 +124,7 @@ function CatalogProductCard({
       <button
         type="button"
         className={styles.imageWrap}
-        aria-label={`Ampliar foto de ${itemTitle(item)}`}
+        aria-label={`Ampliar foto de ${itemAccessibleTitle(item)}`}
         onClick={() => onZoom(item)}
       >
         <img src={item.image} alt="" loading="lazy" />
@@ -112,7 +133,8 @@ function CatalogProductCard({
         </span>
       </button>
       <div className={styles.body}>
-        <p className={styles.name}>{itemTitle(item)}</p>
+        <p className={styles.name}>{catalogItemName(item)}</p>
+        <CatalogSizeBadge item={item} />
         <p className={styles.meta}>
           {item.stones ? item.stones : "\u00a0"}
         </p>
@@ -211,6 +233,8 @@ export function PublicCatalogPage({ showPrices }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [activeMaterial, setActiveMaterial] = useState<string>("all");
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+  const [zoomSlideDir, setZoomSlideDir] =
+    useState<LightboxSlideDirection>("next");
 
   const load = useCallback(
     async (silent = false) => {
@@ -291,6 +315,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
 
   function openZoom(item: PublicCatalogItem) {
     const i = galleryItems.findIndex((x) => x.id === item.id);
+    setZoomSlideDir("next");
     setZoomIndex(i >= 0 ? i : null);
   }
 
@@ -299,6 +324,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
   }
 
   function goPrev() {
+    setZoomSlideDir("prev");
     setZoomIndex((i) => {
       if (i == null || i <= 0) return i;
       return i - 1;
@@ -306,6 +332,7 @@ export function PublicCatalogPage({ showPrices }: Props) {
   }
 
   function goNext() {
+    setZoomSlideDir("next");
     setZoomIndex((i) => {
       if (i == null || i >= galleryItems.length - 1) return i;
       return i + 1;
@@ -486,7 +513,9 @@ export function PublicCatalogPage({ showPrices }: Props) {
       <ImageLightbox
         open={zoomItem != null}
         src={zoomItem?.image ?? ""}
-        alt={zoomItem ? itemTitle(zoomItem) : ""}
+        alt={zoomItem ? itemAccessibleTitle(zoomItem) : ""}
+        mediaKey={zoomItem?.id}
+        slideDirection={zoomSlideDir}
         onClose={closeZoom}
         onPrevious={
           zoomIndex != null && zoomIndex > 0 ? goPrev : undefined

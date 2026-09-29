@@ -76,16 +76,24 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   listo: "entregado",
 };
 
+const LAST_SELLER_KEY = "jg-last-seller";
+
 export function OrdersPage() {
   const {
     orders,
     clients,
     products,
+    sellers,
     inventorySource,
     createOrder,
     updateOrder,
     addOrderDeposit,
   } = usePos();
+
+  const activeSellers = useMemo(
+    () => sellers.filter((s) => s.active),
+    [sellers]
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] =
     useState<OrderStatusFilter>("activos");
@@ -100,6 +108,8 @@ export function OrdersPage() {
   const [editLines, setEditLines] = useState<DraftOrderLine[]>([]);
   const [depositAmount, setDepositAmount] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
+  const [orderSeller, setOrderSeller] = useState("");
+  const [newOrderSeller, setNewOrderSeller] = useState("");
 
   const mongo = inventorySource === "mongo";
 
@@ -144,6 +154,14 @@ export function OrdersPage() {
     setForm({ ...emptyForm });
     setDraftLines([]);
     setFormError("");
+    const last = sessionStorage.getItem(LAST_SELLER_KEY) ?? "";
+    if (last && activeSellers.some((s) => s.name === last)) {
+      setNewOrderSeller(last);
+    } else if (activeSellers.length === 1) {
+      setNewOrderSeller(activeSellers[0]!.name);
+    } else {
+      setNewOrderSeller("");
+    }
     setShowForm(true);
   }
 
@@ -151,6 +169,43 @@ export function OrdersPage() {
     if (!selected) return null;
     return orders.find((o) => o.id === selected.id) ?? selected;
   }, [selected, orders]);
+
+  useEffect(() => {
+    if (!selectedLive) {
+      setOrderSeller("");
+      return;
+    }
+    const fromOrder = selectedLive.seller?.trim();
+    const last = sessionStorage.getItem(LAST_SELLER_KEY) ?? "";
+    if (fromOrder) {
+      setOrderSeller(fromOrder);
+      return;
+    }
+    if (last && activeSellers.some((s) => s.name === last)) {
+      setOrderSeller(last);
+      return;
+    }
+    if (activeSellers.length === 1) {
+      setOrderSeller(activeSellers[0]!.name);
+      return;
+    }
+    setOrderSeller("");
+  }, [selectedLive?.id, selectedLive?.seller, activeSellers]);
+
+  async function pickOrderSeller(name: string) {
+    setOrderSeller(name);
+    sessionStorage.setItem(LAST_SELLER_KEY, name);
+    if (!selectedLive || selectedLive.status === "entregado") return;
+    setDetailBusy(true);
+    try {
+      const updated = await updateOrder(selectedLive.id, { seller: name });
+      setSelected(updated);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "No se pudo guardar vendedora.");
+    } finally {
+      setDetailBusy(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -180,6 +235,7 @@ export function OrdersPage() {
       clientId: form.clientId || undefined,
       clientName: form.clientName?.trim() || undefined,
       clientPhone: form.clientPhone?.trim() || undefined,
+      seller: newOrderSeller.trim() || undefined,
     };
 
     setSaving(true);
@@ -196,9 +252,21 @@ export function OrdersPage() {
   }
 
   async function setStatus(order: OrderRecord, status: OrderStatus) {
+    if (
+      status === "entregado" &&
+      activeSellers.length > 0 &&
+      !orderSeller.trim()
+    ) {
+      alert("Elige quién atiende el pedido (vendedora) antes de entregar.");
+      return;
+    }
     setDetailBusy(true);
     try {
-      const updated = await updateOrder(order.id, { status });
+      const patch =
+        status === "entregado"
+          ? { status, seller: orderSeller.trim() }
+          : { status };
+      const updated = await updateOrder(order.id, patch);
       setSelected(updated);
     } catch (err) {
       alert(err instanceof Error ? err.message : "No se pudo actualizar.");
@@ -412,10 +480,41 @@ export function OrdersPage() {
 
                   {selectedLive.status === "entregado" && selectedLive.saleId && (
                     <p className={styles.orderSaleLink}>
-                      Venta registrada.{" "}
-                      <Link to="/ventas">Ver en Ventas →</Link>
+                      Venta registrada
+                      {selectedLive.seller
+                        ? ` · ${selectedLive.seller}`
+                        : ""}
+                      . <Link to="/ventas">Ver en Ventas →</Link>
                     </p>
                   )}
+
+                  {ACTIVE_ORDER_STATUSES.includes(selectedLive.status) &&
+                  activeSellers.length > 0 ? (
+                    <div className={styles.orderDetailSection}>
+                      <h3>Vendedora (comisión 1%)</h3>
+                      <p className={styles.orderEditHint}>
+                        Obligatoria al entregar. Cuenta en Comisiones como venta
+                        de pedido.
+                      </p>
+                      <div className={styles.paySellerChips}>
+                        {activeSellers.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className={`${styles.paySellerChip} ${
+                              orderSeller === s.name
+                                ? styles.paySellerChipActive
+                                : ""
+                            }`}
+                            disabled={detailBusy}
+                            onClick={() => void pickOrderSeller(s.name)}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   {ACTIVE_ORDER_STATUSES.includes(selectedLive.status) && (
                     <>
@@ -610,6 +709,32 @@ export function OrdersPage() {
               products={products}
               disabled={saving}
             />
+
+            {activeSellers.length > 0 ? (
+              <div className={styles.formField}>
+                <span>Vendedora (comisión al entregar)</span>
+                <div className={styles.paySellerChips}>
+                  {activeSellers.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={`${styles.paySellerChip} ${
+                        newOrderSeller === s.name
+                          ? styles.paySellerChipActive
+                          : ""
+                      }`}
+                      disabled={saving}
+                      onClick={() => {
+                        setNewOrderSeller(s.name);
+                        sessionStorage.setItem(LAST_SELLER_KEY, s.name);
+                      }}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <label className={styles.formField}>
               Dejó hoy (opcional)

@@ -14,10 +14,30 @@ import {
 } from "../lib/orderItems.js";
 import { ClientModel } from "../models/Client.js";
 import { OrderModel, docToOrder } from "../models/Order.js";
+import { SellerModel } from "../models/Seller.js";
 
 export const ordersRouter = Router();
 
 const STATUSES = ["pendiente", "en_taller", "listo", "entregado", "cancelado"];
+
+async function resolveOrderSeller(raw, required = false) {
+  const seller = typeof raw === "string" ? raw.trim() : "";
+  const active = await SellerModel.find({ active: true }).select("name").lean();
+  if (active.length === 0) {
+    return seller || "Mostrador";
+  }
+  const allowed = new Set(active.map((s) => s.name.trim().toLowerCase()));
+  if (!seller) {
+    if (required) {
+      throw new Error("Elige quién atiende el pedido (vendedora).");
+    }
+    return undefined;
+  }
+  if (!allowed.has(seller.toLowerCase())) {
+    throw new Error("Vendedora no válida o inactiva.");
+  }
+  return seller;
+}
 
 async function resolveClientFields(body) {
   let clientName = body.clientName?.trim() ?? "";
@@ -69,6 +89,8 @@ ordersRouter.post("/", async (req, res, next) => {
     const payments =
       depositPaid > 0 ? [{ amount: depositPaid, paidAt: new Date() }] : [];
 
+    const sellerOnCreate = await resolveOrderSeller(body.seller, false);
+
     const doc = await OrderModel.create({
       orderCode,
       ...clientFields,
@@ -83,6 +105,7 @@ ordersRouter.post("/", async (req, res, next) => {
       payments,
       status: "pendiente",
       inventoryHeld: false,
+      seller: sellerOnCreate,
     });
 
     if (orderLinesHoldInventory(items)) {
@@ -105,6 +128,20 @@ ordersRouter.patch("/:id", async (req, res, next) => {
     if (!doc) {
       res.status(404).json({ error: "Pedido no encontrado." });
       return;
+    }
+
+    if (body.seller !== undefined) {
+      if (doc.status === "entregado") {
+        res.status(400).json({
+          error: "No se puede cambiar la vendedora de un pedido ya entregado.",
+        });
+        return;
+      }
+      if (body.seller === "" || body.seller == null) {
+        doc.seller = undefined;
+      } else {
+        doc.seller = await resolveOrderSeller(body.seller, true);
+      }
     }
 
     if (body.status !== undefined) {
@@ -142,6 +179,7 @@ ordersRouter.patch("/:id", async (req, res, next) => {
           doc.productId,
           orderInventoryWasHeld(doc)
         );
+        doc.seller = await resolveOrderSeller(body.seller ?? doc.seller, true);
         await createSaleFromOrder(doc);
       }
     }

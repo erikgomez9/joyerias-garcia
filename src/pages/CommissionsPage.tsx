@@ -63,8 +63,9 @@ export function CommissionsPage() {
     <div className={styles.page}>
       <h1 className={ui.pageTitle}>Comisiones</h1>
       <p className={ui.pageDesc}>
-        {formatCommissionRate(report?.rate ?? 0.01)} del total de cada venta en
-        mostrador (sin garantías). Quincenas: del 1 al 15 y del 16 al fin de mes.
+        {formatCommissionRate(report?.rate ?? 0.01)} del total de ventas en POS y
+        pedidos entregados (sin garantías). Quincenas: del 1 al 15 y del 16 al fin
+        de mes.
       </p>
 
       <div className={styles.toolbar}>

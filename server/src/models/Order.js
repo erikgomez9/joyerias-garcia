@@ -48,6 +48,8 @@ const orderSchema = new mongoose.Schema(
     inventoryHeld: { type: Boolean, default: false },
     dueDate: { type: Date },
     notes: { type: String, trim: true },
+    /** Vendedora para comisión al entregar el pedido. */
+    seller: { type: String, trim: true },
   },
   { timestamps: true }
 );
@@ -121,6 +123,7 @@ export function docToOrder(doc) {
     inventoryHeld: Boolean(doc.inventoryHeld),
     dueDate: toIso(doc.dueDate),
     notes: doc.notes,
+    seller: doc.seller?.trim() || undefined,
     createdAt: toIso(doc.createdAt) ?? new Date().toISOString(),
     updatedAt: toIso(doc.updatedAt) ?? new Date().toISOString(),
   };

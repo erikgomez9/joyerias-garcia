@@ -50,7 +50,7 @@ export async function createSaleFromOrder(orderDoc) {
   const sale = await SaleModel.create({
     total: orderDoc.totalAmount,
     payment: "pedido",
-    seller: "Mostrador",
+    seller: orderDoc.seller?.trim() || "Mostrador",
     orderId: orderDoc._id,
     orderCode: orderDoc.orderCode,
     items,

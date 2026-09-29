@@ -213,6 +213,7 @@ export interface OrderRecord {
   inventoryHeld?: boolean;
   dueDate?: string;
   notes?: string;
+  seller?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -226,6 +227,7 @@ export interface OrderInput {
   description?: string;
   items: OrderLine[];
   depositPaid?: number;
+  seller?: string;
 }
 
 export type SalePaymentMethod =

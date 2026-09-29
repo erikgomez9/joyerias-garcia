@@ -170,7 +170,7 @@ export const ordersApi = {
   update(
     id: string,
     patch: Partial<
-      Pick<OrderRecord, "status" | "description" | "items">
+      Pick<OrderRecord, "status" | "description" | "items" | "seller">
     >
   ): Promise<OrderRecord> {
     return request<OrderRecord>(`/orders/${id}`, {

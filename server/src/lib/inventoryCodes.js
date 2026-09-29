@@ -5,6 +5,7 @@ const CATEGORY_CODE = {
   Pulseras: "PL",
   Dijes: "DI",
   Relojes: "RE",
+  Juegos: "JU",
   Otros: "OT",
 };
 

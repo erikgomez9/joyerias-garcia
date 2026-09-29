@@ -59,6 +59,7 @@ export type ProductCategory =
   | "Pulseras"
   | "Dijes"
   | "Relojes"
+  | "Juegos"
   | "Otros";
 
 /** catalog = mismo SKU, stock > 1 · unique = una pieza, stock 1 */

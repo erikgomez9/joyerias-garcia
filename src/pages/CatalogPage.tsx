@@ -78,6 +78,7 @@ export function CatalogPage() {
   } = usePos();
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>("todos");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<CatalogForm>(emptyForm);
@@ -94,10 +95,23 @@ export function CatalogPage() {
     }
   }
 
+  const categoryOptions = useMemo(() => {
+    const inProducts = new Set(products.map((p) => p.category));
+    const ordered: string[] = [];
+    for (const c of PRODUCT_CATEGORIES) {
+      if (inProducts.has(c)) ordered.push(c);
+    }
+    for (const c of inProducts) {
+      if (!ordered.includes(c)) ordered.push(c);
+    }
+    return ordered;
+  }, [products]);
+
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return products.filter((p) => {
       if (!matchesProductStatusFilter(p, statusFilter)) return false;
+      if (categoryFilter && p.category !== categoryFilter) return false;
       if (!term) return true;
       return (
         p.name.toLowerCase().includes(term) ||
@@ -107,7 +121,10 @@ export function CatalogPage() {
         (p.size?.toLowerCase().includes(term) ?? false)
       );
     });
-  }, [products, q, statusFilter]);
+  }, [products, q, statusFilter, categoryFilter]);
+
+  const hasActiveFilters =
+    statusFilter !== "todos" || categoryFilter !== null || q.trim() !== "";
 
   const totals = useMemo(() => {
     const pieces = products.reduce((s, p) => s + p.stock, 0);
@@ -309,7 +326,35 @@ export function CatalogPage() {
               </button>
             ))}
           </div>
-          {statusFilter !== "todos" && (
+          {categoryOptions.length > 0 && (
+            <div style={{ marginTop: "0.85rem" }}>
+              <span className={styles.catalogFiltersLabel}>Categoría</span>
+              <div className={styles.chips} role="tablist" aria-label="Categoría">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={categoryFilter === null}
+                  className={`${styles.chip} ${categoryFilter === null ? styles.chipActive : ""}`}
+                  onClick={() => setCategoryFilter(null)}
+                >
+                  Todas
+                </button>
+                {categoryOptions.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="tab"
+                    aria-selected={categoryFilter === c}
+                    className={`${styles.chip} ${categoryFilter === c ? styles.chipActive : ""}`}
+                    onClick={() => setCategoryFilter(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {hasActiveFilters && (
             <p className={styles.catalogFilterHint}>
               Mostrando {filtered.length} de {products.length} SKU
             </p>
@@ -327,7 +372,7 @@ export function CatalogPage() {
       ) : filtered.length === 0 ? (
         <div className={ui.card}>
           <p style={{ margin: 0, color: "var(--text-muted)" }}>
-            No hay piezas con este estado y búsqueda. Prueba otro filtro.
+            No hay piezas con estos filtros. Prueba otra categoría, estado o búsqueda.
           </p>
         </div>
       ) : (

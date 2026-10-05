@@ -128,11 +128,13 @@ export function CatalogPage() {
 
   const totals = useMemo(() => {
     const pieces = products.reduce((s, p) => s + p.stock, 0);
-    const value = products.reduce(
-      (s, p) => s + p.priceMenudeo * p.stock,
-      0
-    );
-    return { pieces, value, skus: products.length };
+    let valueMenudeo = 0;
+    let valueMayoreo = 0;
+    for (const p of products) {
+      valueMenudeo += p.priceMenudeo * p.stock;
+      valueMayoreo += p.priceMayoreo * p.stock;
+    }
+    return { pieces, valueMenudeo, valueMayoreo, skus: products.length };
   }, [products]);
 
   function openCreate() {
@@ -283,8 +285,12 @@ export function CatalogPage() {
           <div className={ui.cardValue}>{totals.pieces}</div>
         </div>
         <div className={ui.card}>
-          <div className={ui.cardMuted}>Valor en piso</div>
-          <div className={ui.cardValue}>{formatMoney(totals.value)}</div>
+          <div className={ui.cardMuted}>Piso (menudeo)</div>
+          <div className={ui.cardValue}>{formatMoney(totals.valueMenudeo)}</div>
+        </div>
+        <div className={ui.card}>
+          <div className={ui.cardMuted}>Piso (mayoreo)</div>
+          <div className={ui.cardValue}>{formatMoney(totals.valueMayoreo)}</div>
         </div>
       </div>
 

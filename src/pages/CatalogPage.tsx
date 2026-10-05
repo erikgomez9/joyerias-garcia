@@ -553,7 +553,6 @@ export function CatalogPage() {
                   onChange={(e) =>
                     setForm({ ...form, category: e.target.value })
                   }
-                  disabled={!!editing}
                 >
                   {PRODUCT_CATEGORIES.map((c) => (
                     <option key={c} value={c}>

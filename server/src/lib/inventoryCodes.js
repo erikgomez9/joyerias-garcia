@@ -6,6 +6,7 @@ const CATEGORY_CODE = {
   Dijes: "DI",
   Relojes: "RE",
   Juegos: "JU",
+  Insumos: "IN",
   Otros: "OT",
 };
 

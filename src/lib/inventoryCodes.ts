@@ -8,6 +8,7 @@ const CATEGORY_CODE: Record<string, string> = {
   Dijes: "DI",
   Relojes: "RE",
   Juegos: "JU",
+  Insumos: "IN",
   Otros: "OT",
 };
 
@@ -19,6 +20,7 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "Dijes",
   "Relojes",
   "Juegos",
+  "Insumos",
   "Otros",
 ];
 
